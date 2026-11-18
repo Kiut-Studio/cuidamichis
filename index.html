@@ -51,7 +51,9 @@ button:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
 .hero .pill{font-size:14px;white-space:normal;text-align:center}
 
 #stage{position:relative;background:var(--white);border-radius:22px;overflow:hidden;user-select:none;-webkit-user-select:none;
-  width:480px;max-width:100%;height:clamp(620px,calc(100dvh - 150px),920px);display:flex;flex-direction:column}
+  width:480px;max-width:100%;height:clamp(560px,calc(100dvh - 200px),920px);display:flex;flex-direction:column}
+/* pantallas bajitas (compu/tablet): sin el cartelito, así el juego entra entero y no hace falta scroll */
+@media (max-height:860px){.hero .pill{display:none}.hero{padding-bottom:6px}#stage{height:clamp(540px,calc(100dvh - 162px),920px)}}
 
 /* ---------- escena (el patio) ---------- */
 #scene{position:relative;flex:0 0 50%;min-height:250px;border-bottom:4px solid var(--ink);touch-action:manipulation}

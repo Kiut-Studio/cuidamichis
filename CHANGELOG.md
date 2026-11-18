@@ -1,5 +1,8 @@
 # Cambios
 
+## 1.1.1
+- En compu y tablet el juego entra entero en la pantalla, sin scroll vertical (se achica el alto del juego y, en pantallas bajitas, se oculta el cartelito).
+
 ## 1.1.0 — pasa a Kiut Studio y se llama Cuidamichis
 **Juego**
 - Nuevo patio: casa con chimenea y ventana que se prende de noche, cerca, farol, calle con autos, sol/luna/estrellas/nubes, mariposas de día y luciérnagas de noche.
