@@ -8,6 +8,8 @@ from PIL import Image
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 ENT = RAIZ / 'arte' / 'entrada'
 POSES = ['feliz','contento','triste','hambre','comiendo','jugando','banio','miedo','enfermo','bostezo','dormido1','dormido2']
+EDADES = ['edad_bebe','edad_joven','edad_adulto','edad_abuelo']
+CARAS = ['cara_feliz','cara_amor','cara_enojo','cara_sorpresa','cara_triste','cara_sueno']
 EXTRAS = ['tazon','cama','pelota','lana','pescado','gota','caca','corazon','final_vejez','final_descuido','final_porton']
 
 def negro(im):
@@ -32,15 +34,16 @@ def main():
     poses = []; extras = set(arte.get('opcionales', []))
     for f in ent:
         n = f.stem.lower(); im = Image.open(f).convert('RGBA')
-        if n in POSES:
+        if n in POSES or n in EDADES or n in CARAS:
             im.save(RAIZ/'assets'/'gato'/f'{n}.webp', 'WEBP', quality=90, method=6)
             if hacer_negro: negro(im).save(RAIZ/'assets'/'gato'/f'{n}_n.webp', 'WEBP', quality=90, method=6)
             poses.append(n); print('gato   ✔', n)
         elif n in EXTRAS or n.startswith('ropa_'):
             im.save(RAIZ/'assets'/'extra'/f'{n}.webp', 'WEBP', quality=90, method=6); extras.add(n); print('extra  ✔', n)
         else: print('?? nombre no reconocido (se ignora):', f.name)
-    if poses and set(POSES) <= {p.stem for p in (RAIZ/'assets'/'gato').glob('*.webp')}: pass
-    if len(poses) == len(POSES): arte['gato'] = 'sofia'
+    hechas = {p.stem for p in (RAIZ/'assets'/'gato').glob('*.webp')}
+    if set(POSES) <= {n for n in poses} | set(arte.get('poses', [])): arte['gato'] = 'sofia'
+    arte['poses'] = sorted(set(arte.get('poses', [])) | set(poses))
     arte['opcionales'] = sorted(extras)
     (RAIZ/'assets'/'arte.json').write_text(json.dumps(arte, indent=2, ensure_ascii=False) + '\n')
     print('\nListo. Ahora: python3 tools/construir.py y python3 pruebas/juego.py')

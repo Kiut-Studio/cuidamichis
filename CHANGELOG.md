@@ -1,5 +1,8 @@
 # Cambios
 
+## 1.1.2
+- Hoja imprimible para Sofía (docs/hoja_sofi.pdf) y el procesador de dibujos ahora también acepta retratos por edad y caritas.
+
 ## 1.1.1
 - En compu y tablet el juego entra entero en la pantalla, sin scroll vertical (se achica el alto del juego y, en pantallas bajitas, se oculta el cartelito).
 

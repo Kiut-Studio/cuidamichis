@@ -10,6 +10,11 @@
 `feliz`, `contento`, `triste`, `hambre`, `comiendo`, `jugando`, `banio`, `miedo`, `enfermo`, `bostezo`, `dormido1`, `dormido2`
 (el gato mira a la izquierda en las poses sentadas; las dormidas son más bajas que anchas).
 
+## Retratos por edad (4) y caritas (6)
+`edad_bebe`, `edad_joven`, `edad_adulto`, `edad_abuelo` y `cara_feliz`, `cara_amor`, `cara_enojo`, `cara_sorpresa`, `cara_triste`, `cara_sueno`. Se procesan igual que las poses.
+
+(Hay una hoja para imprimir con todo: `docs/hoja_sofi.pdf`.)
+
 ## Opcionales (si no están, el juego usa su dibujo de código)
 `tazon`, `cama`, `pelota`, `lana`, `pescado`, `gota`, `caca`, `corazon`, `final_vejez`, `final_descuido`, `final_porton`, `ropa_<nombre>`.
 
