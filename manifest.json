@@ -1,8 +1,8 @@
 {
- "name": "Con Cuidado",
- "short_name": "Con Cuidado",
+ "name": "Cuidamichis",
+ "short_name": "Cuidamichis",
  "description": "Cuidá a tu gatito… y a vos también.",
- "id": "/con-cuidado/",
+ "id": "/cuidamichis/",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

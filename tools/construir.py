@@ -64,7 +64,7 @@ def main():
     nueva = huella(lista)
     if not marca or marca.group(1) != nueva:
         ver += 1
-        print(f'↑ Cambió algo: la caché pasa a con-cuidado-v{ver}')
+        print(f'↑ Cambió algo: la caché pasa a cuidamichis-v{ver}')
     else:
         print(f'= Sin cambios desde la última vez (v{ver})')
     sw = re.sub(r"const C=PRE\+'v\d+';", f"const C=PRE+'v{ver}';", sw)

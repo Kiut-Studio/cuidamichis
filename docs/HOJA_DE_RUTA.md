@@ -1,4 +1,4 @@
-# Hoja de ruta — Con Cuidado
+# Hoja de ruta — Cuidamichis
 
 ## Ya hecho (1.1)
 - Revisión completa y 125 pruebas automáticas; errores corregidos (ver CHANGELOG).

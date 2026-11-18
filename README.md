@@ -1,9 +1,9 @@
-# 🐱 Con Cuidado
+# 🐱 Cuidamichis
 
 Un juego de **Kiut Studio** para cuidar un gatito: darle de comer, jugar, bañarlo y quererlo. Si no lo cuidás bien, puede morir.
 
 - Un solo archivo (`index.html`), sin servidor ni cuenta: se juega en el navegador y se puede instalar como app (PWA).
-- Funciona sin conexión. La partida se guarda en el dispositivo (`localStorage`, clave `conCuidado.v1`).
+- Funciona sin conexión. La partida se guarda en el dispositivo (`localStorage`, clave `conCuidado.v1`, se mantiene el nombre viejo para no perder partidas).
 - Tiempo real: las barras bajan en horas, el gato crece en días (bebé → joven → adulto → abuelo → final a los 14 días). Hay modo `prueba` (acelerado) para probar.
 
 ## Cómo probarlo

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pruebas automáticas de Con Cuidado (Playwright + Chromium).
+"""Pruebas automáticas de Cuidamichis (Playwright + Chromium).
 
 Uso:   python3 pruebas/juego.py            # corre todo
        python3 pruebas/juego.py -k minijuego   # solo las pruebas cuyo nombre incluye "minijuego"
@@ -389,9 +389,9 @@ def sin_conexion(br):
     s = Sesion(br, reloj=False).abrir(empezar=False)
     s.pg.wait_for_function('navigator.serviceWorker&&navigator.serviceWorker.controller||navigator.serviceWorker.ready.then(()=>true)', timeout=8000)
     s.pg.wait_for_timeout(2500)
-    ks = s.ev("caches.keys()"); check('se crea la copia sin conexión', any(k.startswith('con-cuidado-') for k in ks), ks)
+    ks = s.ev("caches.keys()"); check('se crea la copia sin conexión', any(k.startswith('cuidamichis-') for k in ks), ks)
     # todos los archivos que el juego pide están en la copia
-    falt = s.ev("""(async()=>{const k=(await caches.keys()).find(k=>k.startsWith('con-cuidado-'));const c=await caches.open(k);const ks=(await c.keys()).map(r=>new URL(r.url).pathname);
+    falt = s.ev("""(async()=>{const k=(await caches.keys()).find(k=>k.startsWith('cuidamichis-'));const c=await caches.open(k);const ks=(await c.keys()).map(r=>new URL(r.url).pathname);
       const need=performance.getEntriesByType('resource').map(r=>new URL(r.name)).filter(u=>u.origin===location.origin&&!u.pathname.endsWith('sw.js')).map(u=>u.pathname);
       return need.filter(p=>!ks.includes(p))})()""")
     check('lo que carga el juego está en la copia sin conexión', not falt, falt)
@@ -406,7 +406,7 @@ def sin_conexion(br):
 def manifest_y_pwa(br):
     s = Sesion(br, reloj=False).abrir(empezar=False)
     m = s.ev("fetch(document.querySelector('link[rel=manifest]').href).then(r=>r.json())")
-    check('manifest: tiene id y scope propios (para no pisar a los otros juegos)', m.get('id') == '/con-cuidado/' and m.get('scope') == './', m)
+    check('manifest: tiene id y scope propios (para no pisar a los otros juegos)', m.get('id') == '/cuidamichis/' and m.get('scope') == './', m)
     ic = []
     for i in m['icons']:
         st = s.ev("fetch('%s').then(r=>r.status)" % i['src']); ic.append(st)

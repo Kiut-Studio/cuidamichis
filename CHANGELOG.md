@@ -1,6 +1,6 @@
 # Cambios
 
-## 1.1.0 — pasa a Kiut Studio
+## 1.1.0 — pasa a Kiut Studio y se llama Cuidamichis
 **Juego**
 - Nuevo patio: casa con chimenea y ventana que se prende de noche, cerca, farol, calle con autos, sol/luna/estrellas/nubes, mariposas de día y luciérnagas de noche.
 - Noche con luz real (farol y ventana iluminan); efectos de zzz, chispas y gota de susto.
