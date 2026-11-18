@@ -18,4 +18,4 @@
 - Guardado en la nube con la cuenta compartida de Kiut Studio (Firebase), opcional.
 
 ## Ideas sin fecha
-Más minijuegos, estaciones del año, segunda mascota, versión Android empaquetada.
+Más colores de gato (blanco, gris, manchado) para elegir al empezar o que salgan al azar; hoy hay solo dos (naranja y el negro "callejero"). Más minijuegos, estaciones del año, segunda mascota, versión Android empaquetada.
