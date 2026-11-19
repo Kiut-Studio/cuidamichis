@@ -1,4 +1,9 @@
 {
   "gato": "provisorio",
-  "opcionales": []
+  "opcionales": [],
+  "poses": [
+    "contento",
+    "feliz",
+    "triste"
+  ]
 }
