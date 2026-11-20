@@ -20,7 +20,7 @@ Atajo de pruebas: `http://localhost:8000/#prueba` expone `window.CC` en la conso
 |---|---|
 | `index.html` | El juego completo |
 | `manifest.json`, `sw.js` | App instalable y modo sin conexión (`sw.js` lo regenera `tools/construir.py`) |
-| `assets/` | Dibujos, fuentes e íconos |
+| `assets/` | Dibujos, fuentes e íconos (`gato/` = provisorios, `gato_sofia/` = los de Sofía, que se activan en Ajustes) |
 | `assets/arte.json` | Lista de los dibujos de Sofía que ya están (lo escribe `tools/procesar_arte.py`) |
 | `arte/` | **Acá se dejan los dibujos nuevos de Sofía** (ver `docs/ARTE_SOFIA.md`) |
 | `pruebas/` | Pruebas automáticas (Playwright, Python) |

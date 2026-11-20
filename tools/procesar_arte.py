@@ -30,18 +30,17 @@ def main():
     ent = sorted(ENT.glob('*.png')) + sorted(ENT.glob('*.webp'))
     if not ent: print('No hay dibujos en arte/entrada/'); return
     arte = json.loads((RAIZ/'assets'/'arte.json').read_text())
-    (RAIZ/'assets'/'extra').mkdir(exist_ok=True)
+    (RAIZ/'assets'/'extra').mkdir(exist_ok=True); (RAIZ/'assets'/'gato_sofia').mkdir(exist_ok=True)
     poses = []; extras = set(arte.get('opcionales', []))
     for f in ent:
         n = f.stem.lower(); im = Image.open(f).convert('RGBA')
         if n in POSES or n in EDADES or n in CARAS:
-            im.save(RAIZ/'assets'/'gato'/f'{n}.webp', 'WEBP', quality=90, method=6)
-            if hacer_negro: negro(im).save(RAIZ/'assets'/'gato'/f'{n}_n.webp', 'WEBP', quality=90, method=6)
+            im.save(RAIZ/'assets'/'gato_sofia'/f'{n}.webp', 'WEBP', quality=90, method=6)
+            if hacer_negro: negro(im).save(RAIZ/'assets'/'gato_sofia'/f'{n}_n.webp', 'WEBP', quality=90, method=6)
             poses.append(n); print('gato   ✔', n)
         elif n in EXTRAS or n.startswith('ropa_'):
             im.save(RAIZ/'assets'/'extra'/f'{n}.webp', 'WEBP', quality=90, method=6); extras.add(n); print('extra  ✔', n)
         else: print('?? nombre no reconocido (se ignora):', f.name)
-    hechas = {p.stem for p in (RAIZ/'assets'/'gato').glob('*.webp')}
     if set(POSES) <= {n for n in poses} | set(arte.get('poses', [])): arte['gato'] = 'sofia'
     arte['poses'] = sorted(set(arte.get('poses', [])) | set(poses))
     arte['opcionales'] = sorted(extras)

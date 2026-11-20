@@ -1,5 +1,12 @@
 # Cambios
 
+## 1.3.1 — Dibujos de Sofía opcionales y detalles
+- **Ajustes → Dibujos del gatito:** se puede elegir entre los dibujos de Sofía (activados por defecto) y los provisorios. La elección se guarda y no cambia al empezar con otro gatito. Los dibujos de Sofía se usan pose por pose: las que todavía no dibujó siguen con el provisorio.
+- Los dibujos de Sofía ahora viven en `assets/gato_sofia/` y los provisorios quedaron intactos en `assets/gato/`. `tools/procesar_arte.py` escribe en `assets/gato_sofia/`.
+- **Cuenta regresiva de los minijuegos:** el 3, 2, 1 y "¡Ya!" aparecen siempre centrados (la animación los movía de lugar).
+- **Burbuja de pensamiento** (sueño, hambre, enfermo, sucio…): ahora queda arriba de la cabeza del gatito y ya no le tapa la cara.
+- Pruebas nuevas para los tres puntos.
+
 ## 1.3.0 — Afinidad
 - Barra nueva **💞 Afinidad** (0 a 100, **de cada gatito**; arranca en 40): cuánto te quiere.
 - **Sube** con mimos (cada 45 s), jugar (más con el vóley), atenderlo cuando lo necesita y los días bien cuidados.

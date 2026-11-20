@@ -3,7 +3,7 @@
 ## Cómo entregar
 1. Dibujar cada pose en fondo transparente (PNG), **cuadrado o apaisado**, mismo tamaño y mismo trazo negro grueso que el estilo actual.
 2. Guardar en `arte/entrada/` con el nombre exacto de la lista (ej. `feliz.png`).
-3. Correr `python3 tools/procesar_arte.py` → convierte a `.webp`, crea la versión del gato negro (`_n`) y actualiza `assets/arte.json`.
+3. Correr `python3 tools/procesar_arte.py` → convierte a `.webp`, crea la versión del gato negro (`_n`) y guarda todo en `assets/gato_sofia/` (los provisorios de `assets/gato/` no se tocan) y actualiza `assets/arte.json`. En el juego se activan desde Ajustes → Dibujos del gatito.
 4. Correr `python3 tools/construir.py` y `python3 pruebas/juego.py`.
 
 ## Poses del gato (obligatorias, 12)

@@ -487,6 +487,52 @@ def afinidad(br):
     check('sin errores', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba
+def dibujos_de_sofia_y_detalles(br):
+    s = Sesion(br).abrir()
+    # --- los dibujos de Sofía se pueden activar o no desde Ajustes
+    s.pg.click('#setBtn'); s.pg.wait_for_timeout(300)
+    check('Ajustes muestra la opción de los dibujos de Sofía', s.ev("!document.getElementById('artBox').hidden"))
+    check('por defecto están activados', s.ev("document.querySelector('#artSeg [data-a=\"1\"]').getAttribute('aria-pressed')") == 'true')
+    txt = s.ev("document.getElementById('artTxt').textContent")
+    check('dice cuántas poses ya son de Sofía', '3 de 12' in txt, txt)
+    check('activado: las poses de Sofía usan su carpeta y el resto, la provisoria', s.ev("[CC.catSrc('feliz'),CC.catSrc('triste'),CC.catSrc('hambre'),CC.catSrc('feliz',true)]") ==
+          ['assets/gato_sofia/feliz.webp', 'assets/gato_sofia/triste.webp', 'assets/gato/hambre.webp', 'assets/gato_sofia/feliz_n.webp'], s.ev("[CC.catSrc('feliz'),CC.catSrc('hambre')]"))
+    s.pg.click('#setsBack'); s.pg.wait_for_timeout(1500); s.foto('dibujos-sofia-si')
+    s.pg.click('#setBtn'); s.pg.click('#artSeg [data-a="0"]')
+    check('desactivado: todo vuelve a los dibujos provisorios', s.ev("[CC.catSrc('feliz'),CC.catSrc('triste'),CC.sofiaOn('feliz')]") == ['assets/gato/feliz.webp', 'assets/gato/triste.webp', False])
+    check('el texto de Ajustes lo explica', 'provisorios' in s.ev("document.getElementById('artTxt').textContent"))
+    s.pg.click('#setsBack'); s.pg.wait_for_timeout(1500); s.foto('dibujos-sofia-no')
+    s.pg.reload(); s.pg.wait_for_function('window.CC&&document.readyState==="complete"'); s.pg.wait_for_timeout(600)
+    check('la elección se guarda al cerrar y abrir el juego', s.ev('CC.S.arteSofia') is False and s.ev("CC.catSrc('feliz')") == 'assets/gato/feliz.webp')
+    s.pg.click('#setBtn'); s.pg.click('#resetBtn'); s.pg.click('#resetYes'); s.pg.wait_for_timeout(300)
+    s.pg.fill('#nameIn', 'Otro'); s.pg.click('#introGo'); s.pg.wait_for_timeout(300)
+    check('empezar con otro gatito no cambia la elección', s.ev('CC.S.arteSofia') is False)
+    s.pg.click('#setBtn'); s.pg.click('#artSeg [data-a="1"]'); s.pg.click('#setsBack')
+    check('se puede volver a activar', s.ev("CC.sofiaOn('feliz')") is True)
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+    # --- la cuenta regresiva de los minijuegos aparece siempre en el mismo lugar
+    s = Sesion(br).abrir(); s.pg.click('#aPlay'); s.pg.click('[data-g=lana]')
+    centros = []
+    for i in range(40):
+        c = s.ev("(()=>{const m=document.getElementById('mgMsg');if(m.hidden)return null;const r=m.getBoundingClientRect(),v=document.getElementById('mgCv').getBoundingClientRect();return [r.left+r.width/2-(v.left+v.width/2),r.top+r.height/2-(v.top+v.height/2),m.textContent]})()")
+        if c: centros.append(c)
+        s.pg.wait_for_timeout(60)
+    nums = {c[2] for c in centros}
+    check('se ven los números de la cuenta regresiva', {'3', '2', '1'} <= nums, nums)
+    check('todos aparecen centrados, en el mismo lugar', all(abs(c[0]) < 3 and abs(c[1]) < 3 for c in centros), [c for c in centros if abs(c[0]) >= 3 or abs(c[1]) >= 3][:3])
+    s.cerrar()
+    # --- la burbuja de pensamiento queda arriba del gatito, sin tapar la cara
+    s = Sesion(br).abrir(); cuidar(s)
+    for nombre, js in [('sueño', 'p.energia=10'), ('triste', 'p.felicidad=10'), ('enfermo', 'p.salud=10'), ('sucio', 'p.limpieza=10')]:
+        for sofia in ['true', 'false']:
+            s.ev("(()=>{const S=CC.S,p=S.pet;for(const k in p)p[k]=100;S.arteSofia=%s;S.mode='prueba';S.edad=.1;S.luz=true;%s})()" % (sofia, js)); s.pg.wait_for_timeout(900)
+            th = s.ev('CC.thoughtPos()'); box = s.ev('CC.catBox()'); w = s.ev("document.getElementById('cv').getBoundingClientRect().width")
+            check(f'burbuja de {nombre} ({"Sofía" if sofia == "true" else "provisorio"}): arriba del gatito y dentro de la pantalla',
+                  th and box and th['y'] + 16 <= box['y'] + 6 and 8 <= th['y'] and 8 <= th['x'] <= w - 8, [th, box])
+    s.ev("(()=>{const S=CC.S,p=S.pet;for(const k in p)p[k]=100;S.arteSofia=true;p.energia=10})()"); s.pg.wait_for_timeout(900); s.foto('burbuja-sueno')
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
 def muerte_durante_minijuego(br):
     s = Sesion(br).abrir(); s.ev("CC.S.pet.felicidad=40")
     s.pg.click('#aPlay'); s.pg.click('[data-g=lana]'); esperar_juego(s)

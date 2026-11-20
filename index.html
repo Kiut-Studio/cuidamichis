@@ -116,6 +116,7 @@ button:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
 .smBtn{padding:7px 18px;font-size:15px;background:var(--white)}
 .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
 @keyframes pop{0%{transform:scale(.7) rotate(-2deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes popMsg{0%{transform:translate(-50%,-50%) scale(.7) rotate(-2deg)}100%{transform:translate(-50%,-50%) scale(1) rotate(0)}}
 
 /* elegir avatar */
 .chars{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:14px}
@@ -399,6 +400,9 @@ body.compact #stage{width:100%;height:100dvh;border-radius:0;border:0;box-shadow
         <div class="lbl">Velocidad del tiempo</div>
         <div class="seg" id="modeSeg"><button data-m="prueba">🐇 Rápido (prueba)</button><button data-m="real">🐢 Real</button></div>
         <div class="lbl" id="modeTxt"></div>
+        <div id="artBox"><div class="lbl">Dibujos del gatito</div>
+        <div class="seg" id="artSeg"><button data-a="1">🖍️ De Sofía</button><button data-a="0">🤖 Provisorios</button></div>
+        <div class="lbl" id="artTxt"></div></div>
         <div class="lbl">Sonido</div>
         <div class="seg" id="sfxSeg"><button data-s="1">🔊 Con sonidos</button><button data-s="0">🔇 Sin sonidos</button></div>
         <div class="row">
@@ -483,12 +487,12 @@ const freshPet=()=>({
 const fresh=()=>Object.assign({v:1,
   secretos:{camara_desbloqueada:false},     // reservado para el secreto de la cámara (todavía sin hacer)
   flagPersonalizacion:false,                // personalización de la mascota: apagada por ahora
-  last:Date.now(),char:null,mode:'real',music:true,sfx:true,
+  last:Date.now(),char:null,mode:'real',music:true,sfx:true,arteSofia:true,
   fru:10,inv:{},own:{},wear:'',streak:0,recuerdos:[],tutDone:false,best:{}},freshPet());
 let S=fresh();
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===1){const f=fresh();S=Object.assign(f,s);S.avatar=Object.assign(f.avatar,s.avatar);S.pet=Object.assign(f.pet,s.pet);S.care=Object.assign(f.care,s.care||{})}}catch(e){}
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
-function newPet(){const keep={};['v','secretos','flagPersonalizacion','char','mode','music','sfx','fru','inv','own','wear','streak','recuerdos','tutDone','best'].forEach(k=>keep[k]=S[k]);
+function newPet(){const keep={};['v','secretos','flagPersonalizacion','char','mode','music','sfx','arteSofia','fru','inv','own','wear','streak','recuerdos','tutDone','best'].forEach(k=>keep[k]=S[k]);
   S=Object.assign(fresh(),keep,freshPet(),{last:Date.now()})}
 
 const CHARS=[{id:'sofi',name:'Sofi'},{id:'deisy',name:'Deisy'},{id:'leandro',name:'Leandro'},{id:'nora',name:'Nora'},{id:'cinthia',name:'Cinthia'}];
@@ -502,7 +506,13 @@ const ready=i=>i&&i.complete&&i.naturalWidth>0;
    assets/arte.json dice cuáles hay (lo escribe tools/procesar_arte.py). Si un dibujo no está, el juego usa el hecho con código. */
 const ART={gato:'provisorio',opcionales:[]};
 const X=k=>{const i=IMG['x_'+k];return ready(i)?i:null};
-fetch('assets/arte.json').then(r=>r.json()).then(j=>{Object.assign(ART,j);(ART.opcionales||[]).forEach(k=>{const i=new Image();i.src='assets/extra/'+k+'.webp';IMG['x_'+k]=i});renderCredits()}).catch(()=>{});
+fetch('assets/arte.json').then(r=>r.json()).then(j=>{Object.assign(ART,j);(ART.opcionales||[]).forEach(k=>{const i=new Image();i.src='assets/extra/'+k+'.webp';IMG['x_'+k]=i});
+  (ART.poses||[]).filter(k=>CAT_KEYS.includes(k)).forEach(k=>['','_n'].forEach(n=>{const i=new Image();i.src='assets/gato_sofia/'+k+n+'.webp';IMG['s_'+k+n]=i}));
+  renderCredits();renderSets()}).catch(()=>{});
+/* ---------- dibujos de Sofía (assets/gato_sofia/) vs. los provisorios (assets/gato/): se elige en Ajustes ----------
+   Los de Sofía se usan pose por pose: las que todavía no dibujó siguen con el dibujo provisorio. */
+const sofiaOn=k=>S.arteSofia!==false&&(ART.poses||[]).includes(k);
+const sofiaPoses=()=>(ART.poses||[]).filter(k=>CAT_KEYS.includes(k)).length;
 
 /* ---------- el gato: un dibujo por pose (assets/gato/; los que terminan en _n son del gato negro, el "callejero") ----------
    hf = alto del dibujo respecto del tamaño del gato · head = dónde está la cabeza dentro del dibujo (para la ropa) */
@@ -520,14 +530,19 @@ function variant(im,mode){
     for(let i=0;i<a.length;i+=4){const l=.299*a[i]+.587*a[i+1]+.114*a[i+2];for(let j=0;j<3;j++)a[i+j]=Math.min(255,(l+(a[i+j]-l)*sat)*br)}
     x.putImageData(d,0,0)}catch(e){return VAR[k]=im}
   return VAR[k]=c}
+const HEAD_S={contento:[.37,.23]};   // dónde está la cabeza en los dibujos de Sofía que se ven distinto a los provisorios
+const headOf=k=>sofiaOn(k)&&HEAD_S[k]||CAT[k].head;
+function catImg(key,black){const n=black?'_n':'';
+  if(sofiaOn(key)){const si=IMG['s_'+key+n]||IMG['s_'+key];if(ready(si))return si}
+  return IMG['c_'+key+n]||IMG['c_'+key]}
 // dibuja la pose centrada en cx, apoyada en by (el piso); devuelve el rectángulo que ocupó
 function drawCat(c,key,cx,by,s,black,breathe=0,mode=''){
-  let im=IMG['c_'+key+(black?'_n':'')]||IMG['c_'+key];if(!ready(im))return null;
+  let im=catImg(key,black);if(!ready(im))return null;
   const nw=im.naturalWidth,nh=im.naturalHeight;if(mode)im=variant(im,mode);
   const h=s*CAT[key].hf*(1+breathe),w=h*nw/nh*(1-breathe*.5),x=cx-w/2,y=by-h;
   c.imageSmoothingEnabled=true;c.drawImage(im,x,y,w,h);return {x,y,w,h,key};
 }
-const catSrc=(k,black)=>'assets/gato/'+k+(black?'_n':'')+'.webp';
+const catSrc=(k,black)=>(sofiaOn(k)?'assets/gato_sofia/':'assets/gato/')+k+(black?'_n':'')+'.webp';
 const isBlack=()=>S.pers==='callejero';
 const nm=()=>S.name||'Michi';
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -817,11 +832,11 @@ $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(
 
 /* ---------- créditos y ajustes ---------- */
 function renderCredits(){
-  const sof=ART.gato==='sofia';
+  const sofN=S.arteSofia!==false?sofiaPoses():0,sof=ART.gato==='sofia'&&S.arteSofia!==false;
   $('credList').innerHTML=[
     ['🏠','Un juego de <b>Kiut Studio</b> · <a href="../">Más juegos</a>'],
     ['🖍️','Dibujos de los avatares, la frutilla y el pancito: <b>Sofía</b> ©'],
-    ['🐱',sof?'Dibujos del gatito: <b>Sofía</b> ©':'Dibujos provisorios del gatito: hechos con <b>Meta AI</b>, hasta que lleguen los de <b>Sofía</b>'],
+    ['🐱',sof?'Dibujos del gatito: <b>Sofía</b> ©':sofN?`Dibujos del gatito: ${sofN} poses de <b>Sofía</b> © y el resto provisorios (hechos con <b>Meta AI</b>, hasta que lleguen los de Sofía)`:'Dibujos provisorios del gatito: hechos con <b>Meta AI</b>, hasta que lleguen los de <b>Sofía</b>'],
     ['💡','Idea original: un sueño. Idea y producción: <b>Leandro</b>.'],
     ['💻','Programación: <b>Leandro</b>, con asistencia de IA (Claude).'],
     ['🎵','Música y sonidos hechos con código.'],
@@ -831,9 +846,13 @@ renderCredits();
 $('credBtn').onclick=()=>show('cred',true);$('credBack').onclick=()=>show('cred',false);
 function renderSets(){document.querySelectorAll('#modeSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===S.mode));
   document.querySelectorAll('#sfxSeg button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.s===+S.sfx));
+  const n=sofiaPoses();show('artBox',n>0);
+  document.querySelectorAll('#artSeg button').forEach(b=>b.setAttribute('aria-pressed',!!+b.dataset.a===(S.arteSofia!==false)));
+  $('artTxt').textContent=S.arteSofia!==false?`Ya hay ${n} de ${CAT_KEYS.length} poses dibujadas por Sofía; las que faltan se ven con el dibujo provisorio.`:'Se usan solo los dibujos provisorios (hechos con Meta AI).';
   $('modeTxt').textContent=MODES[S.mode].txt;show('resetAsk',false)}
 $('setBtn').onclick=()=>{renderSets();show('sets',true)};$('setsBack').onclick=()=>show('sets',false);
 document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{catchUp();S.mode=b.dataset.m;persist();renderSets();render()});
+document.querySelectorAll('#artSeg button').forEach(b=>b.onclick=()=>{S.arteSofia=!!+b.dataset.a;persist();faceShown='';renderSets();renderCredits()});
 document.querySelectorAll('#sfxSeg button').forEach(b=>b.onclick=()=>{S.sfx=!!+b.dataset.s;persist();renderSets();if(S.sfx){ac();sMeow(0)}});
 $('changeAv').onclick=()=>{show('sets',false);openIntro(false)};
 $('resetBtn').onclick=()=>show('resetAsk',true);$('resetNo').onclick=()=>show('resetAsk',false);
@@ -1192,13 +1211,14 @@ function draw(t,dt){
   if(rr&&ending&&ending.tipo==='descuido'){c.globalAlpha=alpha*Math.min(1,ending.t/2);drawCat(c,key,cx+g.cs/2,cy+g.cs,g.cs,isBlack(),breathe,'gris')}
   c.restore();
   if(rr){
-    if(S.wear&&ITEM[S.wear]&&alpha>0){const hd=CAT[key].head,hx=rr.x+rr.w*hd[0],hy=rr.y+rr.h*hd[1],fs=g.cs*.3,im=X('ropa_'+S.wear);
+    const hd0=headOf(key);
+    if(S.wear&&ITEM[S.wear]&&alpha>0){const hd=hd0,hx=rr.x+rr.w*hd[0],hy=rr.y+rr.h*hd[1],fs=g.cs*.3,im=X('ropa_'+S.wear);
       c.globalAlpha=alpha;if(im)c.drawImage(im,hx-fs*.7+(S.wear==='flor'?g.cs*.14:0),hy-fs*1.05,fs*1.4,fs*1.4);
       else{c.fillStyle='#000';c.font=Math.round(fs)+'px serif';c.textAlign='center';c.textBaseline='bottom';c.fillText(ITEM[S.wear].em,hx+(S.wear==='flor'?g.cs*.14:0),hy+fs*.35);c.textAlign='start';c.textBaseline='alphabetic'}c.globalAlpha=1}
-    if(!ending&&!asleep()&&key!=='hambre')thought(rr.x+rr.w*.85,rr.y+4,p.salud<LOW?'🤒':p.hambre<LOW?'🍗':p.limpieza<LOW?'🫧':p.energia<LOW?'💤':p.felicidad<LOW?'🧶':S.cacas.length>=3?'💩':S.pet.afinidad<AFI.lejos?'💔':null,t);
+    if(!ending&&!asleep()&&key!=='hambre')thought(Math.min(W-24,rr.x+rr.w*hd0[0]+Math.max(22,g.cs*.12)),Math.max(24,rr.y-14),p.salud<LOW?'🤒':p.hambre<LOW?'🍗':p.limpieza<LOW?'🫧':p.energia<LOW?'💤':p.felicidad<LOW?'🧶':S.cacas.length>=3?'💩':S.pet.afinidad<AFI.lejos?'💔':null,t);
     catBox={x:rr.x,y:rr.y,w:rr.w,h:rr.h};catKey=key;
     // efectitos: zzz al dormir, chispas al festejar, gota de sudor del susto
-    const hd=CAT[key].head;zT-=dt;spT-=dt;swT-=dt;
+    const hd=hd0;zT-=dt;spT-=dt;swT-=dt;
     if(pose==='durmiendo'&&!(ending&&ending.tipo!=='porton')&&zT<=0){zT=1.3;parts.push({k:'zzz',x:rr.x+rr.w*hd[0]+8,y:rr.y+rr.h*hd[1]-4,vx:.25,vy:-.45,r:14+Math.random()*6,l:1,rot:Math.random()*6})}
     if(pose==='feliz'&&spT<=0){spT=.18;parts.push({k:'spark',x:rr.x+rr.w*(.15+Math.random()*.7),y:rr.y+rr.h*(.1+Math.random()*.5),vx:(Math.random()-.5)*.6,vy:-.3,r:6+Math.random()*5,l:.8,rot:Math.random()})}
     if(key==='miedo'&&!ending&&swT<=0){swT=.6;parts.push({k:'sweat',x:rr.x+rr.w*(hd[0]+.18),y:rr.y+rr.h*(hd[1]+.05),vx:.3,vy:.5,r:11,l:.7,rot:0})}
@@ -1212,7 +1232,8 @@ function draw(t,dt){
   if(ending){ending.t+=dt;const k=Math.min(1,Math.max(0,(ending.t-1.4)/1.2));if(k>0){c.fillStyle=`rgba(20,8,14,${k*.9})`;c.fillRect(0,0,W,H)}
     if(ending.t>2.8){ending=null;showFinal()}}
 }
-function thought(x,y,em,t){if(!em)return;const c=ctx;y+=Math.sin(t*3)*2;
+let TH=null;   // dónde se dibujó la burbuja (para las pruebas)
+function thought(x,y,em,t){if(!em)return;const c=ctx;y+=Math.sin(t*3)*2;TH={x,y};
   c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=2.5;c.beginPath();c.arc(x,y,16,0,7);c.fill();c.stroke();
   c.beginPath();c.arc(x-12,y+18,4,0,7);c.fill();c.stroke();c.font='18px serif';c.textAlign='center';c.textBaseline='middle';c.fillText(em,x,y+1);c.textAlign='start';c.textBaseline='alphabetic'}
 let catBox=null,catKey='contento',lastPet=0,shhT=0;
@@ -1263,7 +1284,7 @@ function startMG(kind,work){
   if(kind==='cajas'){MG.round=0;MG.rounds=5;MG.slot=[0,1,2];MG.cat=Math.random()*3|0;MG.phase='intro';MG.pt=0;MG.left=0}
   $('mgHelp').textContent=MGDEF[kind].help;show('mgHelp',true);mgMsg('3');sClick();
 }
-function mgMsg(t){const m=$('mgMsg');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;m.style.animation='none';m.offsetWidth;m.style.animation='pop .3s cubic-bezier(.34,1.56,.64,1)'}
+function mgMsg(t){const m=$('mgMsg');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;m.style.animation='none';m.offsetWidth;m.style.animation='popMsg .3s cubic-bezier(.34,1.56,.64,1)'}
 function mgPop(x,y,txt,col){MG.fx.push({x,y,txt,col,l:1})}
 function mgEnd(){
   if(!MG||MG.over)return;MG.over=true;show('mgHelp',false);mgMsg('');
@@ -1471,7 +1492,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){napping=fa
 addEventListener('pagehide',()=>{catchUp();persist()});
 if(document.readyState==='complete')boot();else addEventListener('load',boot);
 
-if(location.hash==='#prueba')window.CC={get S(){return S},get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,goWork,workBlock,mgEnd,geo,STAGES,AFI,addAfi,umbral,
+if(location.hash==='#prueba')window.CC={get S(){return S},get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,goWork,workBlock,mgEnd,geo,STAGES,AFI,addAfi,umbral,catSrc,sofiaOn,thoughtPos:()=>TH,catBox:()=>catBox,
   age(days){const n=Math.round(days*86400/ageF());for(let i=0;i<n&&!S.terminado;i++){S.last+=1000;step(1)}S.last=Date.now();render()}};
 if(window.PWA&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 })();
