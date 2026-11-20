@@ -252,7 +252,9 @@ button:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
 }
 body.compact #app{padding:0}
 body.compact .hero,body.compact .foot{display:none}
-body.compact #stage{width:100%;height:100dvh;border-radius:0;border:0;box-shadow:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+/* el juego se pega a los bordes de la ventana (fixed) en vez de medir 100dvh: en la app instalada 100dvh puede sumar de más y la página se mueve */
+html.compact,html.compact body{overflow:hidden;height:100%}
+body.compact #stage{position:fixed;inset:0;width:100%;height:auto;border-radius:0;border:0;box-shadow:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 @media (max-width:380px){.stat{grid-template-columns:24px 84px minmax(0,1fr) 32px}.stat .n{font-size:13px}.act{font-size:13px}.sTop .pill{font-size:13px;padding:2px 9px}}
 @media (max-height:720px),(max-width:560px) and (max-height:800px){#scene{flex-basis:45%}.pane{gap:6px;padding:7px 12px}.stat .e{font-size:16px}.bar{height:14px}.act .ae{font-size:22px}.act{padding:5px 4px}.hint{display:none}.subActs button{padding:3px 12px}}
 </style>
@@ -1109,7 +1111,7 @@ setInterval(()=>{if(!musOn||!AC||AC.state!=='running')return;
    ===================================================================== */
 const cv=$('cv'),ctx=cv.getContext('2d');let W=0,H=0,DPR=1;
 function resize(){
-  document.body.classList.toggle('compact',innerWidth<=560||innerHeight<=640);
+  {const cp=innerWidth<=560||innerHeight<=640;document.body.classList.toggle('compact',cp);document.documentElement.classList.toggle('compact',cp)}
   const r=cv.getBoundingClientRect();DPR=Math.min(2,devicePixelRatio||1);W=r.width;H=r.height;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);bgKey='';
 }
 addEventListener('resize',resize);
@@ -1749,8 +1751,10 @@ setInterval(()=>{if(document.hidden&&S.char&&!S.terminado&&$('intro').hidden&&S.
 
 
 /* ---------- novedades: lo que ven los jugadores, la más nueva primero (mantener igual que CHANGELOG.md) ---------- */
-const VERSION='1.5.2';
+const VERSION='1.5.3';
 const NEWS=[
+  {v:'1.5.3',fecha:'noviembre 2026',titulo:'Ajuste para la app instalada',items:[
+    ['📱','En el celular el juego ahora se pega a los bordes de la pantalla y la página ya no se puede mover, también en la app instalada.']]},
   {v:'1.5.2',fecha:'noviembre 2026',titulo:'Todo entra en la pantalla',items:[
     ['📱','Arreglo: en el celular ya no hace falta deslizar el panel de abajo; el patio se achica solo lo justo para que entren las barras y los botones.']]},
   {v:'1.5.1',fecha:'noviembre 2026',titulo:'Novedades en el juego',items:[

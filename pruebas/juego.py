@@ -709,6 +709,9 @@ def sin_scroll_en_celular(br):
         pagina = s.ev("document.scrollingElement.scrollHeight-innerHeight")
         check(f'{w}x{h}: la página tampoco se mueve', pagina <= 1, pagina)
         check(f'{w}x{h}: el patio mide al menos 200', s.ev("document.getElementById('scene').offsetHeight") >= 200)
+    check('en celular la página queda fija (sin scroll posible)', s.ev("getComputedStyle(document.documentElement).overflow==='hidden'&&getComputedStyle(document.getElementById('stage')).position==='fixed'"))
+    s.pg.set_viewport_size({'width': 390, 'height': 780}); s.pg.mouse.wheel(0, 400); s.pg.wait_for_timeout(200)
+    check('girar la rueda no mueve la página', s.ev('scrollY') == 0)
     s.ev("document.getElementById('tabPet').click()"); s.pg.set_viewport_size({'width': 390, 'height': 780}); s.pg.wait_for_timeout(300); s.foto('celular-390x780')
     check('sin errores', not s.errs, str(s.errs)); s.cerrar()
 

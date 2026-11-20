@@ -1,5 +1,8 @@
 # Cambios
 
+## 1.5.3
+- Celular: el juego usa `position:fixed` pegado a los bordes y la página no hace scroll (`html.compact`), en vez de medir `100dvh`, que en la app instalada (PWA) podía sumar de más. Pendiente confirmarlo en un teléfono real con la app instalada.
+
 ## 1.5.2
 - Arreglo: en celulares parados el panel de abajo (barras y botones) hacía scroll desde que se sumaron la afinidad y los logros. Ahora el patio cede el lugar que haga falta y el panel mide lo mismo en las dos pestañas. Prueba nueva con 7 tamaños de pantalla.
 
