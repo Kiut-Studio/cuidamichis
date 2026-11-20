@@ -30,7 +30,7 @@ Atajo de pruebas: `http://localhost:8000/#prueba` expone `window.CC` en la conso
 
 ```bash
 pip install playwright && playwright install chromium
-python3 pruebas/juego.py                 # todas (125 comprobaciones)
+python3 pruebas/juego.py                 # todas (más de 150 comprobaciones)
 python3 pruebas/juego.py -k pantallas --capturas
 ```
 

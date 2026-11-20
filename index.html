@@ -170,7 +170,7 @@ button:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
 /* juegos */
 .games{display:grid;gap:10px;margin-top:12px}
 .gBtn{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;background:var(--cream);border-radius:18px;padding:8px 12px}
-.gBtn:nth-child(2){background:#FFD6E4}.gBtn:nth-child(3){background:#CDEBFF}
+.gBtn:nth-child(2){background:#FFD6E4}.gBtn:nth-child(3){background:#CDEBFF}.gBtn:nth-child(4){background:#D9F5D0}
 .gBtn .e{font-size:34px;text-align:center}
 .gBtn b{font-family:var(--hand);font-size:26px;line-height:1;display:block}
 .gBtn small{font-size:13px;opacity:.75;display:block;line-height:1.15}
@@ -269,11 +269,12 @@ body.compact #stage{width:100%;height:100dvh;border-radius:0;border:0;box-shadow
       </div>
       <div class="pane" id="paneAv" hidden>
         <div class="stats" id="avStats"></div>
-        <div class="acts two">
+        <div class="acts">
           <button class="act thick-sm" id="aEat"><span class="ae">🍓</span>Comer</button>
           <button class="act thick-sm" id="aShower"><span class="ae">🚿</span>Bañarse</button>
+          <button class="act thick-sm" id="aWork"><span class="ae">💼</span>Trabajar</button>
         </div>
-        <p class="hint">Jugar con el gatito también te levanta el ánimo 🧶</p>
+        <p class="hint">Jugar con el gatito te levanta el ánimo 🧶 · Trabajar da 🍓 pero cansa y el gatito te extraña</p>
       </div>
     </div>
 
@@ -320,9 +321,23 @@ body.compact #stage{width:100%;height:100dvh;border-radius:0;border:0;box-shadow
           <button class="btn gBtn thick-sm" data-g="lana"><span class="e">🧶</span><span><b>Atrapá la lana</b><small>Mové al gatito. ¡Ojo con las gotas!</small></span><span class="best" id="best_lana"></span></button>
           <button class="btn gBtn thick-sm" data-g="laser"><span class="e">🔴</span><span><b>El láser</b><small>Tocá el puntito antes de que se escape</small></span><span class="best" id="best_laser"></span></button>
           <button class="btn gBtn thick-sm" data-g="cajas"><span class="e">📦</span><span><b>¿Dónde está?</b><small>Seguí la caja donde se escondió</small></span><span class="best" id="best_cajas"></span></button>
+          <button class="btn gBtn thick-sm" data-g="voley"><span class="e">🏐</span><span><b>Vóley juntos</b><small>Pasale la pelota a tu gatito. ¡Juegan los dos!</small></span><span class="best" id="best_voley"></span></button>
         </div>
         <button class="quick" id="quickPlay">😺 Solo un ratito (sin minijuego)</button><br>
         <button class="btn bigBtn" id="gamesBack">Volver</button>
+      </div>
+    </div>
+    <!-- trabajar: elegir trabajo -->
+    <div id="jobs" class="overlay" hidden>
+      <div class="card thick">
+        <div class="blob"></div>
+        <div class="title">💼 ¿Dónde trabajás hoy?</div>
+        <div class="sub" style="font-size:13px">Pagan más 🍓 que jugar, pero te dan hambre y ensucian, te bajan el ánimo y <b>el gatito te extraña</b>. Al volver hay que cerrar el portón.</div>
+        <div class="games">
+          <button class="btn gBtn thick-sm" data-j="kiosco"><span class="e">🏪</span><span><b>El kiosco</b><small>Dale a cada cliente lo que pide, rápido</small></span><span class="best" id="best_kiosco"></span></button>
+          <button class="btn gBtn thick-sm" data-j="reparto"><span class="e">🚲</span><span><b>Reparto</b><small>Juntá paquetes y esquivá los conos</small></span><span class="best" id="best_reparto"></span></button>
+        </div>
+        <button class="btn bigBtn" id="jobsBack">Volver</button>
       </div>
     </div>
     <div id="mg" class="overlay" hidden>
@@ -441,8 +456,16 @@ const SHOP=[
     {id:'mono',em:'🎀',name:'Moño',d:'Un moñito en la cabeza',p:20,perm:1,wear:1},
     {id:'flor',em:'🌸',name:'Florcita',d:'Una flor en la oreja',p:20,perm:1,wear:1},
     {id:'galera',em:'🎩',name:'Galera',d:'Muy elegante',p:45,perm:1,wear:1},
-    {id:'corona',em:'👑',name:'Corona',d:'Para el rey de la casa',p:80,perm:1,wear:1}]}
+    {id:'corona',em:'👑',name:'Corona',d:'Para el rey de la casa',p:80,perm:1,wear:1}]},
+  {g:'Para lucirse (ahorrá con el trabajo 💼)',items:[
+    {id:'gorra',em:'🧢',name:'Gorra',d:'Muy canchero',p:90,perm:1,wear:1},
+    {id:'auris',em:'🎧',name:'Auriculares',d:'Con su música favorita',p:130,perm:1,wear:1},
+    {id:'paja',em:'👒',name:'Sombrero de paja',d:'Para el sol de la tarde',p:160,perm:1,wear:1},
+    {id:'vaquero',em:'🤠',name:'Sombrero vaquero',d:'Yihaa, michi',p:200,perm:1,wear:1},
+    {id:'birrete',em:'🎓',name:'Birrete',d:'Se graduó de gatito',p:260,perm:1,wear:1}]}
 ];
+// trabajo: lo que cuesta cada turno (el ánimo solo se recupera jugando con el gatito)
+const WORK={hambre:18,higiene:12,animo:12,extrana:6,minimo:25};
 const ITEM={};SHOP.forEach(g=>g.items.forEach(i=>ITEM[i.id]=i));
 
 /* ---------- guardado (localStorage; distinto de Dina Run y Dina Beat, comparten sitio) ---------- */
@@ -594,7 +617,7 @@ function endGame(tipo){
   if(S.terminado)return;
   S.terminado=true;S.final=tipo;S.diedAt=S.last;S.porton=false;
   if(MG){MG.over=true;MG=null}
-  ['games','mg','shop','bag','grow','sets','cred'].forEach(o=>show(o,false));
+  ['games','jobs','mg','shop','bag','grow','sets','cred'].forEach(o=>show(o,false));
   if(tipo==='vejez')S.fru+=50;
   S.recuerdos.unshift({f:tipo,d:Math.floor(S.edad),st:Math.min(S.stage,3),p:S.pers,n:nm()});S.recuerdos=S.recuerdos.slice(0,8);
   persist();stopMusic();
@@ -648,10 +671,24 @@ $('aPlay').onclick=()=>{if(S.terminado||ending)return;ac();
   if(S.pet.energia<15){toast(`😴 ${nm()} está muy cansado para jugar`);return}
   if(isNight()&&!S.luz){toast(`🤫 ${nm()} está durmiendo`);return}
   $('gamesTitle').textContent=`¿A qué jugamos con ${nm()}?`;
-  ['lana','laser','cajas'].forEach(k=>$('best_'+k).textContent=S.best[k]?'🏆 '+S.best[k]:'nuevo');show('games',true)};
+  ['lana','laser','cajas','voley'].forEach(k=>$('best_'+k).textContent=S.best[k]?'🏆 '+S.best[k]:'nuevo');show('games',true)};
 $('gamesBack').onclick=()=>show('games',false);
 $('quickPlay').onclick=()=>{show('games',false);act(()=>{earn(S.pet.felicidad);playEffects(ACC.jugar);sPlay()})};
 document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{show('games',false);startMG(b.dataset.g)});
+/* ---------- trabajo: salís por el portón, jugás un turno y volvés ---------- */
+function workBlock(){
+  if(S.porton)return '🚪 Primero cerrá el portón: no podés irte con el gatito mirando la calle';
+  if(isNight())return '🌙 Ya es de noche: no hay trabajo hasta mañana';
+  if(S.pet.salud<30)return `🤒 ${nm()} no está bien: no lo dejes solo`;
+  if(S.avatar.hambre<WORK.minimo)return '🍓 Tenés mucha hambre para trabajar. ¡Comé algo!';
+  if(S.avatar.higiene<WORK.minimo)return '🧼 Necesitás un baño antes de salir a trabajar';
+  if(S.avatar.animo<WORK.minimo)return '🌧️ No tenés ganas de trabajar. Jugá un rato con tu gatito 🧶';
+  return ''}
+$('aWork').onclick=()=>{if(S.terminado||ending)return;ac();const why=workBlock();if(why){toast(why);return}
+  ['kiosco','reparto'].forEach(k=>$('best_'+k).textContent=S.best[k]?'🏆 '+S.best[k]:'nuevo');show('jobs',true)};
+$('jobsBack').onclick=()=>show('jobs',false);
+function goWork(kind){const why=workBlock();if(why){toast(why);return}show('jobs',false);startMG(kind,true)}
+document.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>goWork(b.dataset.j));
 $('aBath').onclick=()=>act(()=>{wakeCheck();earn(S.pet.limpieza);addPet('limpieza',ACC.banar);S.care.banio++;anim.bath=performance.now();burst('bubbles');sSplash()});
 $('aEat').onclick=()=>act(()=>{addAv('hambre',ACC.comer);anim.eatAv=performance.now();sCrunch()});
 $('aShower').onclick=()=>act(()=>{addAv('higiene',ACC.banarse);anim.shower=performance.now();sSplash()});
@@ -1179,13 +1216,18 @@ function miniCats(){ // la carita de la pestaña muestra cómo se siente
    MINIJUEGOS — 3 juegos cortos. Lo que sacás de puntos sube la felicidad y da frutillas.
    ===================================================================== */
 const mgCv=$('mgCv'),mx=mgCv.getContext('2d');
-const MGDEF={lana:{dur:25,help:'👆 Arrastrá para mover al gatito'},laser:{dur:20,help:'👆 Tocá el puntito rojo'},cajas:{dur:0,help:'👀 Mirá bien en qué caja se esconde'}};
+const MGDEF={lana:{dur:25,help:'👆 Arrastrá para mover al gatito'},laser:{dur:20,help:'👆 Tocá el puntito rojo'},cajas:{dur:0,help:'👀 Mirá bien en qué caja se esconde'},
+  kiosco:{dur:30,help:'👆 Tocá lo que pide cada cliente, ¡antes de que se enojen!'},reparto:{dur:30,help:'👆 Tocá o arrastrá para cambiar de carril: 📦 sí, 🚧 no'},
+  voley:{dur:40,help:'👆 Tocá cuando la pelota llegue a vos (3 vidas)'}};
+const MGNEW={kiosco:1,reparto:1,voley:1},KIOSCO=['🍬','🥤','🍞'],CARAS_CLIENTE=['🙂','😀','🧓','👧','👦','🧔'];
 let MG=null;
 function mgSize(){const r=mgCv.getBoundingClientRect();mgCv.width=Math.round(r.width*DPR);mgCv.height=Math.round(r.height*DPR);return {w:r.width,h:r.height}}
-function startMG(kind){
-  if(S.terminado)return;ac();show('mg',true);show('mgRes',false);
+function startMG(kind,work){
+  if(S.terminado)return;ac();show('mg',true);show('mgRes',false);$('mgAgain').hidden=!!work;$('mgDone').textContent=work?'🏠 Volver a casa':'¡Listo! 💕';
   const {w,h}=mgSize();
-  MG={kind,w,h,t:-1.6,left:MGDEF[kind].dur,score:0,items:[],spawn:0,px:w/2,tx:w/2,stun:0,fx:[],combo:0,over:false};
+  MG={kind,w,h,t:-1.6,left:MGDEF[kind].dur,score:0,items:[],spawn:0,px:w/2,tx:w/2,stun:0,fx:[],combo:0,over:false,work:!!work};
+  if(kind==='kiosco')MG.cust=[null,null,null];
+  if(kind==='voley'){MG.lives=3;MG.rally=0;MG.b={dir:'toAv',t:-.8,d:1.5};MG.catHit=-1e9;MG.avHit=-1e9}
   if(kind==='laser'){MG.dot=null;MG.cat={x:w/2,y:h*.7}}
   if(kind==='cajas'){MG.round=0;MG.rounds=5;MG.slot=[0,1,2];MG.cat=Math.random()*3|0;MG.phase='intro';MG.pt=0;MG.left=0}
   $('mgHelp').textContent=MGDEF[kind].help;show('mgHelp',true);mgMsg('3');sClick();
@@ -1195,24 +1237,41 @@ function mgPop(x,y,txt,col){MG.fx.push({x,y,txt,col,l:1})}
 function mgEnd(){
   if(!MG||MG.over)return;MG.over=true;show('mgHelp',false);mgMsg('');
   const k=MG.kind,sc=MG.score,rec=sc>(S.best[k]||0);if(rec)S.best[k]=sc;
-  const fel=Math.min(45,8+sc*(k==='cajas'?3:2)),fru=Math.floor(sc/(k==='cajas'?2:4))*(S.pers==='jugueton'?1.5:1)|0;
-  act(()=>{playEffects(fel);S.fru+=fru});
+  if(MG.work){   // turno de trabajo: plata, cansancio, el gatito te extraña y el portón queda abierto
+    const pay=sc>0?Math.round(2+sc*1.1):0;
+    act(()=>{S.fru+=pay;addAv('hambre',-WORK.hambre);addAv('higiene',-WORK.higiene);addAv('animo',-WORK.animo);addPet('felicidad',-WORK.extrana);
+      S.porton=true;S.tPorton=0;S.cares--;sGate(true)});
+    $('mgResT').textContent=sc===0?'Hoy no hubo suerte…':sc<10?'Turno terminado':'¡Gran turno! 💪';$('mgResN').textContent=sc;
+    $('mgResChips').innerHTML=(rec&&sc>0?'<span class="chip sun">🏆 ¡Récord!</span>':'')+(pay?`<span class="chip">🍓 +${pay}</span>`:'')+
+      `<span class="chip">😮‍💨 −${WORK.hambre} hambre, −${WORK.higiene} higiene, −${WORK.animo} ánimo</span><span class="chip">😿 ${esc(nm())} te extrañó (−${WORK.extrana})</span><span class="chip sun">🚪 ¡Cerrá el portón!</span>`;
+    show('mgRes',true);sYay();return}
+  const vo=k==='voley',fel=vo?Math.min(45,10+sc*1.5):Math.min(45,8+sc*(k==='cajas'?3:2)),fru=Math.floor(sc/(k==='cajas'?2:vo?3:4))*(S.pers==='jugueton'?1.5:1)|0,an=ACC.jugarAnimo+(vo?12:0);
+  act(()=>{playEffects(fel);S.fru+=fru;if(vo)addAv('animo',12)});
   $('mgResT').textContent=sc===0?'¡Uy! La próxima sale':sc<6?'¡Bien jugado!':'¡Genial! 🎉';$('mgResN').textContent=sc;
-  $('mgResChips').innerHTML=(rec&&sc>0?'<span class="chip sun">🏆 ¡Récord!</span>':'')+`<span class="chip">😺 +${Math.round(fel*(S.pers==='jugueton'?1.5:1)+(S.own.pelota?8:0))} felicidad</span>`+(fru?`<span class="chip">🍓 +${fru}</span>`:'')+`<span class="chip">🌈 +${ACC.jugarAnimo} ánimo</span>`;
+  $('mgResChips').innerHTML=(rec&&sc>0?'<span class="chip sun">🏆 ¡Récord!</span>':'')+`<span class="chip">😺 +${Math.round(fel*(S.pers==='jugueton'?1.5:1)+(S.own.pelota?8:0))} felicidad</span>`+(fru?`<span class="chip">🍓 +${fru}</span>`:'')+`<span class="chip">🌈 +${an} ánimo</span>`;
   show('mgRes',true);sYay();sMeow(.3);
 }
 $('mgQuit').onclick=()=>{if(!MG)return;if(MG.t<0||MG.over){MG=null;show('mg',false);return}mgEnd()};
-$('mgDone').onclick=()=>{MG=null;show('mg',false)};
+$('mgDone').onclick=()=>{const w=MG&&MG.work;MG=null;show('mg',false);if(w&&!S.terminado)toast(`🚪 ¡Volviste a casa! Cerrá el portón antes de que ${nm()} mire la calle`)};
 $('mgAgain').onclick=()=>{const k=MG&&MG.kind;MG=null;if(S.pet.energia<15){show('mg',false);toast(`😴 ${nm()} se cansó de jugar`);return}startMG(k)};
 function mgXY(e){const r=mgCv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]}
 mgCv.addEventListener('pointerdown',e=>{if(!MG||MG.over)return;e.preventDefault();const [x,y]=mgXY(e);MG.tx=x;
   if(MG.t<0)return;
+  if(MG.kind==='kiosco'&&y>MG.h*.7){const bw=MG.w*.24;for(let i=0;i<3;i++)if(Math.abs(x-boxX(i))<bw/2){kioscoServe(i);break}}
+  if(MG.kind==='voley')voleyTap();
   if(MG.kind==='laser'&&MG.dot){const d=MG.dot;if(Math.hypot(x-d.x,y-d.y)<36){MG.combo++;const pts=MG.combo%5===0?2:1;MG.score+=pts;mgPop(d.x,d.y,pts>1?'+2 ¡Combo!':'+1','#FF2D78');sCoin();MG.dot=null;MG.spawn=.15}}
   if(MG.kind==='cajas'&&MG.phase==='pick'){const bw=MG.w*.24;for(let i=0;i<3;i++){const bx=boxX(MG.slot[i]);if(Math.abs(x-bx)<bw/2&&y>MG.h*.35&&y<MG.h*.85){
     MG.chosen=i;MG.phase='reveal';MG.pt=0;const ok=i===MG.cat;if(ok){MG.score+=1+MG.round;mgPop(bx,MG.h*.4,'+'+(1+MG.round),'#FF2D78');sCoin();sMeow(.1)}else{sClick();mgPop(bx,MG.h*.4,'¡Ahí no!','#7A4FD0')}break}}}
 },{passive:false});
 mgCv.addEventListener('pointermove',e=>{if(!MG||MG.over)return;const [x]=mgXY(e);if(e.buttons||e.pointerType==='mouse')MG.tx=x});
 const boxX=slot=>MG.w*(.2+slot*.3);
+function kioscoServe(i){const g=MG,j=g.cust.findIndex(c=>c&&c.item===i);
+  if(j<0){g.score=Math.max(0,g.score-1);mgPop(boxX(i),g.h*.66,'¡No pidió eso!','#7A4FD0');sClick();return}
+  const c=g.cust[j],fast=c.t<c.life*.4,pts=fast?2:1;g.score+=pts;mgPop(boxX(j),g.h*.3,'+'+pts+(fast?' ¡Rápido!':''),'#FF2D78');sCoin();g.cust[j]=null;g.spawn=Math.min(g.spawn,.35)}
+const voleyD=r=>Math.max(.8,1.5-r*.03);
+function voleyTap(){const g=MG,b=g.b;if(!b||b.dir!=='toAv'||g.over)return;const left=b.d-b.t;if(left>.4)return;   // pelota todavía lejos: no cuenta
+  const perfect=Math.abs(left)<.13,pts=perfect?2:1;g.rally++;g.score+=pts;mgPop(g.w*.2,g.h*.4,perfect?'+2 ¡Perfecto!':'+1','#FF2D78');sCoin();g.avHit=performance.now();
+  g.b={dir:'toCat',t:0,d:voleyD(g.rally)}}
 function mgUpdate(dt){
   const g=MG;if(!g||g.over){if(g)mgDraw();return}
   if(g.t<0){const prevT=g.t;g.t+=dt;const n=Math.ceil(-g.t/.55);if(Math.ceil(-prevT/.55)!==n&&n>0){mgMsg(String(n));sClick()}if(g.t>=0){mgMsg('¡Ya!');setTimeout(()=>{if(MG===g&&!g.over)mgMsg('')},600)}mgDraw();return}
@@ -1242,6 +1301,27 @@ function mgUpdate(dt){
         g.pt=0;if(g.swaps<=0){g.sw=null;g.phase='pick';g.pt=0}else{const a=Math.random()*3|0;let b=(a+1+(Math.random()*2|0))%3;g.sw=[a,b];sClick()}}}
     if(g.phase==='reveal'&&g.pt>1.3){g.round++;if(g.round>=g.rounds){mgEnd()}else{g.phase='intro';g.pt=0;g.cat=Math.random()*3|0}}
   }
+  if(g.kind==='kiosco'){
+    g.cust.forEach((c,j)=>{if(c){c.t+=dt;if(c.t>=c.life){g.cust[j]=null;mgPop(boxX(j),g.h*.3,'😠','#7A4FD0');sClick()}}});
+    g.spawn-=dt;if(g.spawn<=0){g.spawn=Math.max(.6,1.5-g.t*.025);const free=[0,1,2].filter(j=>!g.cust[j]);
+      if(free.length){const j=free[Math.random()*free.length|0];g.cust[j]={item:Math.random()*3|0,t:0,life:Math.max(2.2,4.6-g.t*.06),face:Math.random()*CARAS_CLIENTE.length|0}}}
+  }
+  if(g.kind==='reparto'){
+    const lane=Math.max(0,Math.min(2,Math.floor(g.tx/(g.w/3))));g.px+=(boxX(lane)-g.px)*Math.min(1,dt*14);g.stun=Math.max(0,g.stun-dt);
+    g.spawn-=dt;if(g.spawn<=0){g.spawn=Math.max(.35,.8-g.t*.015);g.items.push({k:Math.random()<.28?'cone':'box',x:boxX(Math.random()*3|0),y:-30,v:(190+g.t*6)*(g.h/700)})}
+    const py=g.h*.84;
+    for(const it of g.items){it.y+=it.v*dt;
+      if(!it.done&&it.y>py-g.h*.16&&it.y<py&&Math.abs(it.x-g.px)<g.w*.1){it.done=1;
+        if(it.k==='cone'){if(!g.stun){g.stun=.8;g.score=Math.max(0,g.score-2);mgPop(it.x,py-g.h*.2,'−2 ¡Cuidado!','#7A4FD0');sClick()}}
+        else{g.score++;mgPop(it.x,py-g.h*.2,'+1','#FF2D78');sCoin()}}}
+    g.items=g.items.filter(it=>!it.done&&it.y<g.h+40);
+  }
+  if(g.kind==='voley'){const b=g.b;b.t+=dt;
+    if(b.dir==='toCat'&&b.t>=b.d){g.catHit=performance.now();sMeow(.12);g.b={dir:'toAv',t:0,d:voleyD(g.rally)}}
+    else if(b.dir==='toAv'&&b.t>=b.d+.14){g.lives--;g.rally=0;mgPop(g.w*.2,g.h*.4,'¡Uy!','#7A4FD0');sClick();
+      if(g.lives<=0){mgEnd();mgDraw();return}
+      g.b={dir:'toAv',t:-.6,d:voleyD(0)}}
+  }
   for(const f of g.fx){f.y-=dt*40;f.l-=dt*1.3}g.fx=g.fx.filter(f=>f.l>0);
   mgDraw();
 }
@@ -1255,10 +1335,47 @@ function mgBg(c,w,h,kind){
   c.fillStyle={lana:'rgba(255,123,169,.35)',laser:'rgba(155,123,255,.3)',cajas:'rgba(123,200,255,.35)'}[kind];c.beginPath();c.ellipse(w/2,fl+(h-fl)*.55,w*.36,(h-fl)*.3,0,0,7);c.fill();c.strokeStyle='rgba(0,0,0,.4)';c.lineWidth=2;c.stroke();
   oRect(c,-4,fl-9,w+8,9,'#fff',3);
 }
+function drawAv(c,x,by,hh,alpha=1){const ai=IMG[charId()];if(!ready(ai))return;const aw=hh*ai.naturalWidth/ai.naturalHeight;c.globalAlpha=alpha;c.drawImage(ai,x-aw/2,by-hh,aw,hh);c.globalAlpha=1}
+function mgDrawNew(c,g,w,h,blk){
+  const now=performance.now(),emo=(t,x,y,sz)=>{c.font=sz+'px serif';c.textAlign='center';c.textBaseline='middle';c.fillStyle='#000';c.fillText(t,x,y)};
+  if(g.kind==='kiosco'){
+    const wg=c.createLinearGradient(0,0,0,h);wg.addColorStop(0,'#FFE9B8');wg.addColorStop(1,'#FFF7E3');c.fillStyle=wg;c.fillRect(0,0,w,h);
+    for(let i=0;i<8;i++){c.fillStyle=i%2?'#fff':'#FF6B8B';c.fillRect(i*w/8,0,w/8+1,h*.09)}c.strokeStyle='#000';c.lineWidth=3;c.strokeRect(-2,-2,w+4,h*.09+2);
+    oRect(c,-4,h*.5,w+8,h*.1,'#C98B4E',3,0);c.fillStyle='#F2D3A9';c.fillRect(0,h*.6,w,h*.4);
+    const bw=w*.24;
+    g.cust.forEach((cu,j)=>{if(!cu)return;const x=boxX(j),k=1-cu.t/cu.life,wob=k<.35?Math.sin(now/60)*3:0;
+      emo(k<.35?'😟':CARAS_CLIENTE[cu.face],x+wob,h*.37,w*.15);
+      oRect(c,x-bw*.32,h*.14,bw*.64,bw*.5,'#fff',3,12);emo(KIOSCO[cu.item],x,h*.14+bw*.25,bw*.34);
+      oRect(c,x-bw*.35,h*.47,bw*.7,9,'#fff',2,5);c.fillStyle=k>.5?'#4CC38A':k>.25?'#FFC93C':'#E5484D';c.fillRect(x-bw*.35+2,h*.47+2,Math.max(0,(bw*.7-4)*k),5)});
+    for(let i=0;i<3;i++){const x=boxX(i);oRect(c,x-bw/2,h*.72,bw,h*.19,'#FFF0A0',3,14);emo(KIOSCO[i],x,h*.72+h*.095,bw*.5)}
+    c.textAlign='start';c.textBaseline='alphabetic';return}
+  if(g.kind==='reparto'){
+    const sk=c.createLinearGradient(0,0,0,h*.2);sk.addColorStop(0,'#CDEBFF');sk.addColorStop(1,'#EAF7FF');c.fillStyle=sk;c.fillRect(0,0,w,h);
+    c.fillStyle='#8A8F98';c.fillRect(0,h*.14,w,h*.86);c.fillStyle='#B8BCC4';c.fillRect(0,h*.14,w,6);c.strokeStyle='#000';c.lineWidth=3;c.strokeRect(-2,h*.14,w+4,h*.86+2);
+    c.strokeStyle='#fff';c.lineWidth=4;c.setLineDash([26,22]);c.lineDashOffset=-(now/6%48);
+    [w/3,w*2/3].forEach(x=>{c.beginPath();c.moveTo(x,h*.14);c.lineTo(x,h);c.stroke()});c.setLineDash([]);
+    for(const it of g.items)emo(it.k==='cone'?'🚧':'📦',it.x,it.y,w*.12);
+    const py=h*.9;c.fillStyle='rgba(0,0,0,.18)';c.beginPath();c.ellipse(g.px,py+2,w*.07,h*.012,0,0,7);c.fill();
+    drawAv(c,g.px,py,h*.2,g.stun&&Math.floor(now/90)%2?.4:1);
+    c.textAlign='start';c.textBaseline='alphabetic';return}
+  if(g.kind==='voley'){
+    const fl=h*.82,sk=c.createLinearGradient(0,0,0,fl);sk.addColorStop(0,'#BFE8FF');sk.addColorStop(1,'#EAF8FF');c.fillStyle=sk;c.fillRect(0,0,w,fl);
+    c.fillStyle='#F6E2A8';c.fillRect(0,fl,w,h-fl);oRect(c,-4,fl-8,w+8,8,'#fff',3,3);
+    c.strokeStyle='#000';c.lineWidth=4;c.beginPath();c.moveTo(w/2,h*.42);c.lineTo(w/2,fl);c.stroke();
+    c.fillStyle='rgba(255,255,255,.85)';c.fillRect(w/2-9,h*.42,18,fl*.2);c.lineWidth=1.5;for(let i=0;i<5;i++){c.beginPath();c.moveTo(w/2-9,h*.42+i*h*.015*1.4);c.lineTo(w/2+9,h*.42+i*h*.015*1.4);c.stroke()}c.strokeRect(w/2-9,h*.42,18,fl*.2);
+    const ax=w*.22,cx=w*.78,cs=Math.min(w*.42,170),by=h*.86;
+    drawAv(c,ax,by,h*.26);drawCat(c,now-g.catHit<350?'jugando':'feliz',cx,by,cs,blk);
+    const b=g.b,k=Math.max(0,Math.min(1,b.t/b.d)),x0=b.dir==='toAv'?cx:ax,x1=b.dir==='toAv'?ax:cx,bx=x0+(x1-x0)*k,hy=h*.7,by0=hy-Math.sin(Math.PI*k)*h*.34;
+    if(b.dir==='toAv'&&b.t>=0){const left=b.d-b.t,ok=left<=.4;c.strokeStyle=ok?'#2DB36F':'rgba(0,0,0,.35)';c.lineWidth=ok?5:3;c.beginPath();c.arc(ax,hy,16+Math.max(0,left)*70,0,7);c.stroke();c.strokeStyle='#000';c.lineWidth=2;c.beginPath();c.arc(ax,hy,16,0,7);c.stroke()}
+    c.fillStyle='rgba(0,0,0,.15)';c.beginPath();c.ellipse(bx,fl+6,13,4,0,0,7);c.fill();
+    c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=3;c.beginPath();c.arc(bx,by0,15,0,7);c.fill();c.stroke();c.lineWidth=2;c.beginPath();c.arc(bx,by0,15,.4,2.2);c.moveTo(bx-14,by0+3);c.quadraticCurveTo(bx,by0-6,bx+14,by0+3);c.stroke();
+    emo('❤️'.repeat(Math.max(0,g.lives)),w/2,h*.13,24);emo('🔁 '+g.rally,w/2,h*.2,20);
+    c.textAlign='start';c.textBaseline='alphabetic'}
+}
 function mgDraw(){
   const g=MG;if(!g)return;const c=mx,w=g.w,h=g.h;c.setTransform(DPR,0,0,DPR,0,0);c.clearRect(0,0,w,h);
-  mgBg(c,w,h,g.kind);
   const blk=isBlack(),fr=Math.floor(performance.now()/160)%2;
+  if(MGNEW[g.kind])mgDrawNew(c,g,w,h,blk);else mgBg(c,w,h,g.kind);
   if(g.kind==='lana'){
     const cs=Math.min(w*.26,110),cy=h-cs-20;
     c.fillStyle='rgba(0,0,0,.14)';c.beginPath();c.ellipse(g.px,cy+cs-2,cs*.36,cs*.06,0,0,7);c.fill();
@@ -1323,7 +1440,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){napping=fa
 addEventListener('pagehide',()=>{catchUp();persist()});
 if(document.readyState==='complete')boot();else addEventListener('load',boot);
 
-if(location.hash==='#prueba')window.CC={get S(){return S},get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,mgEnd,geo,STAGES,
+if(location.hash==='#prueba')window.CC={get S(){return S},get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,goWork,workBlock,mgEnd,geo,STAGES,
   age(days){const n=Math.round(days*86400/ageF());for(let i=0;i<n&&!S.terminado;i++){S.last+=1000;step(1)}S.last=Date.now();render()}};
 if(window.PWA&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 })();

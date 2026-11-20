@@ -252,12 +252,14 @@ def tienda_y_mochila(br):
     s = Sesion(br).abrir()
     s.pg.click('#shopBtn'); check('abre la tienda', s.ev("!document.getElementById('shop').hidden"))
     dis = s.ev("[...document.querySelectorAll('[data-buy]')].filter(b=>b.disabled).length")
-    check('con 10 🍓 lo que no alcanza está deshabilitado (7 de 11 cosas)', dis == 7, dis)
+    check('con 10 🍓 lo que no alcanza está deshabilitado (12 de 16 cosas)', dis == 12, dis)
     s.pg.click('[data-buy=atun]'); check('comprar atún: −6 🍓 y 1 en la mochila', s.ev('[CC.S.fru,CC.S.inv.atun]') == [4, 1], s.ev('[CC.S.fru,CC.S.inv.atun]'))
     s.ev("CC.S.fru=1000"); s.pg.click('#shopBack'); s.pg.click('#shopBtn')
-    for k in ['cama', 'mono', 'corona']: s.pg.click(f'[data-buy={k}]')
+    for k in ['cama', 'mono', 'corona', 'gorra', 'birrete']: s.pg.click(f'[data-buy={k}]')
     check('compras permanentes quedan en own', s.ev('[!!CC.S.own.cama,!!CC.S.own.mono,!!CC.S.own.corona]') == [True, True, True])
-    check('lo último que comprás para vestir se lo pone', s.ev('CC.S.wear') == 'corona', s.ev('CC.S.wear'))
+    check('la ropa nueva (de trabajo) también se compra y se pone', s.ev('[!!CC.S.own.gorra,!!CC.S.own.birrete,CC.S.wear]') == [True, True, 'birrete'], s.ev('[CC.S.own,CC.S.wear]'))
+    check('lo último que comprás para vestir se lo pone', s.ev('CC.S.wear') == 'birrete', s.ev('CC.S.wear'))
+    s.pg.click('#shopBack'); s.pg.click('#bagBtn'); s.pg.click('[data-wear=corona]'); s.pg.click('#bagBack'); s.pg.click('#shopBtn')
     s.pg.click('#shopBack'); s.foto('gatito-corona')
     s.ev("CC.S.pet.hambre=30"); s.pg.click('#bagBtn'); s.pg.click('[data-use=atun]'); s.pg.wait_for_timeout(200)
     check('usar atún de la mochila: +35 comida', s.ev('CC.S.pet.hambre') >= 64 and s.ev('CC.S.inv.atun') == 0, s.ev('CC.S.pet.hambre'))
@@ -311,6 +313,115 @@ def minijuegos(br):
     s = Sesion(br).abrir(); f0 = s.ev('CC.S.pet.felicidad'); s.ev("CC.S.pet.felicidad=40")
     s.pg.click('#aPlay'); s.pg.click('[data-g=lana]'); s.pg.click('#mgQuit')
     check('salir en la cuenta regresiva no da premios ni rompe', s.ev("document.getElementById('mg').hidden") and s.ev('CC.S.pet.felicidad') <= 40.5)
+    s.cerrar()
+
+def rect_mg(s):
+    return s.ev("(()=>{const r=document.getElementById('mgCv').getBoundingClientRect();return [r.left,r.top,r.width,r.height]})()")
+
+def jugar_kiosco(s, r, objetivo=6):
+    for i in range(150):
+        i_ = s.ev('CC.MG.cust.findIndex(c=>c)')
+        if i_ >= 0:
+            item = s.ev('CC.MG.cust[%d].item' % i_); x = s.ev('CC.MG.w*(.2+%d*.3)' % item)
+            s.pg.mouse.click(r[0] + x, r[1] + r[3] * .8)
+        s.pg.wait_for_timeout(80)
+        if s.ev('CC.MG.score') >= objetivo: break
+
+def jugar_reparto(s, r, objetivo=4):
+    for i in range(200):
+        x = s.ev('(()=>{const b=CC.MG.items.filter(i=>i.k==="box"&&!i.done).sort((a,b)=>b.y-a.y)[0];return b?b.x:null})()')
+        if x is not None: s.pg.mouse.click(r[0] + x, r[1] + r[3] * .6)
+        s.pg.wait_for_timeout(60)
+        if s.ev('CC.MG.score') >= objetivo: break
+
+def jugar_voley(s, golpes=3):
+    for i in range(1500):
+        falta = s.ev('CC.MG.b.dir==="toAv"?CC.MG.b.d-CC.MG.b.t:99')
+        if 0 < falta < .12: s.pg.mouse.click(60, 60); s.pg.wait_for_timeout(120)
+        if s.ev('CC.MG.rally') >= golpes: break
+        s.pg.wait_for_timeout(15)
+
+@prueba
+def trabajo(br):
+    s = Sesion(br).abrir()
+    s.pg.click('#tabAv')
+    # --- cuándo NO se puede ir a trabajar
+    s.ev("CC.S.porton=true;CC.render()"); s.pg.click('#aWork')
+    check('con el portón abierto no podés irte a trabajar', s.ev("document.getElementById('jobs').hidden") and 'portón' in s.ev('CC.workBlock()'))
+    s.ev("CC.S.porton=false;CC.S.avatar.hambre=10;CC.render()")
+    check('con hambre no podés trabajar', 'hambre' in s.ev('CC.workBlock()'))
+    s.ev("CC.S.avatar.hambre=100;CC.S.avatar.animo=10;CC.render()")
+    check('sin ánimo no podés trabajar (hay que jugar con el gatito)', 'ganas' in s.ev('CC.workBlock()'))
+    s.ev("CC.S.avatar.animo=100;CC.S.pet.salud=10;CC.render()")
+    check('con el gatito enfermo no te vas', s.ev('CC.workBlock()') != '')
+    s.ev("CC.S.pet.salud=100;CC.S.mode='prueba';CC.S.edad=.5;CC.render()")
+    check('de noche no hay trabajo', 'noche' in s.ev('CC.workBlock()'))
+    s.ev("CC.S.edad=.1;CC.render()")
+    check('de día y con todo bien, sí se puede', s.ev('CC.workBlock()') == '', s.ev('CC.workBlock()'))
+    # --- el kiosco
+    cuidar(s); s.ev("CC.S.fru=0;CC.render()")
+    s.pg.click('#aWork'); check('abre la pantalla de trabajos', s.ev("!document.getElementById('jobs').hidden"))
+    s.pg.click('[data-j=kiosco]'); esperar_juego(s)
+    check('kiosco: no se puede "volver a jugar" un turno', s.ev("document.getElementById('mgAgain').hidden"))
+    r = rect_mg(s); jugar_kiosco(s, r)
+    check('kiosco: atender clientes suma puntos', s.ev('CC.MG.score') >= 5, s.ev('CC.MG.score'))
+    s.foto('trabajo-kiosco')
+    s.ev('CC.MG.t=29.8'); s.pg.wait_for_function('!document.getElementById("mgRes").hidden', timeout=8000)
+    sc = s.ev('CC.MG.score'); pay = round(2 + sc * 1.1)
+    check('kiosco: paga frutillas según el puntaje', s.ev('CC.S.fru') == pay, [s.ev('CC.S.fru'), pay])
+    check('el turno cansa: −18 comida, −12 higiene, −12 ánimo', s.ev('[CC.S.avatar.hambre,CC.S.avatar.higiene,CC.S.avatar.animo].map(Math.round)') == [82, 88, 88], s.ev('[CC.S.avatar.hambre,CC.S.avatar.higiene,CC.S.avatar.animo]'))
+    check('el gatito te extraña (−6 felicidad)', 93 <= s.ev('CC.S.pet.felicidad') <= 94.5, s.ev('CC.S.pet.felicidad'))
+    check('al volver el portón queda abierto (hay que cerrarlo)', s.ev('CC.S.porton') is True)
+    s.foto('trabajo-resultado')
+    s.pg.click('#mgDone'); s.pg.wait_for_timeout(1300)
+    check('al volver avisa que hay que cerrar el portón', 'portón' in s.ev("document.getElementById('toast').textContent"), s.ev("document.getElementById('toast').textContent"))
+    check('no se puede otro turno hasta cerrar el portón', 'portón' in s.ev('CC.workBlock()'))
+    tocar(s, '#gateBtn'); check('cerrando el portón se puede trabajar de nuevo', s.ev('CC.workBlock()') == '' and s.ev('CC.S.porton') is False)
+    # el portón abierto al volver sigue siendo peligroso, como siempre
+    s.ev("CC.S.porton=true;CC.S.tPorton=0;CC.S.pet.hambre=100"); s.ev("CC.S.last-=3600*1000")
+    s.pg.click('#tabPet'); s.pg.click('#aFeed'); s.pg.wait_for_timeout(300)
+    check('si te olvidás de cerrar el portón, igual hay riesgo', s.ev('CC.S.terminado') is True and s.ev('CC.S.final') == 'porton', s.ev('[CC.S.terminado,CC.S.final]'))
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+    # --- el reparto
+    s = Sesion(br).abrir(); cuidar(s); s.ev("CC.S.fru=0")
+    s.pg.click('#tabAv'); s.pg.click('#aWork'); s.pg.click('[data-j=reparto]'); esperar_juego(s)
+    r = rect_mg(s); jugar_reparto(s, r)
+    check('reparto: juntar paquetes suma puntos', s.ev('CC.MG.score') >= 3, s.ev('CC.MG.score'))
+    s.foto('trabajo-reparto')
+    s.ev('CC.MG.t=29.8'); s.pg.wait_for_function('!document.getElementById("mgRes").hidden', timeout=8000)
+    check('reparto: paga frutillas y guarda el récord', s.ev('CC.S.fru') > 0 and s.ev('CC.S.best.reparto') == s.ev('CC.MG.score'), s.ev('[CC.S.fru,CC.S.best]'))
+    s.pg.click('#mgDone'); check('reparto: sin errores', not s.errs, str(s.errs)); s.cerrar()
+    # --- salir con la ✕ en la cuenta regresiva: no pasa nada (no te fuiste)
+    s = Sesion(br).abrir(); cuidar(s)
+    s.pg.click('#tabAv'); s.pg.click('#aWork'); s.pg.click('[data-j=kiosco]'); s.pg.click('#mgQuit')
+    check('arrepentirse antes de empezar no cuesta nada ni deja el portón abierto', s.ev('CC.S.porton') is False and s.ev('CC.S.avatar.animo') == 100)
+    # --- cerrar el juego en medio del turno no deja el portón abierto
+    s.pg.click('#aWork'); s.pg.click('[data-j=kiosco]'); esperar_juego(s)
+    s.pg.reload(); s.pg.wait_for_function('window.CC&&document.readyState==="complete"'); s.pg.wait_for_timeout(500)
+    check('si se cierra la app en pleno turno, el portón sigue cerrado', s.ev('CC.S.porton') is False)
+    s.cerrar()
+
+@prueba
+def voley(br):
+    s = Sesion(br).abrir(); s.ev("CC.S.pet.felicidad=40;CC.S.avatar.animo=50;CC.S.fru=0")
+    s.pg.click('#aPlay'); check('el vóley está en el menú de juegos', s.ev("!!document.querySelector('[data-g=voley]')"))
+    s.pg.click('[data-g=voley]'); esperar_juego(s)
+    check('vóley: empieza con 3 vidas', s.ev('CC.MG.lives') == 3)
+    jugar_voley(s, 3)
+    check('vóley: tocar a tiempo devuelve la pelota y suma', s.ev('CC.MG.rally') >= 3 and s.ev('CC.MG.score') >= 3, s.ev('[CC.MG.rally,CC.MG.score]'))
+    s.foto('juego-voley')
+    # dejar pasar la pelota: pierde una vida
+    v0 = s.ev('CC.MG.lives'); s.pg.wait_for_function('CC.MG.lives<%d' % v0, timeout=8000)
+    check('vóley: si no la devolvés perdés una vida y se corta la racha', s.ev('CC.MG.lives') == v0 - 1 and s.ev('CC.MG.rally') == 0)
+    s.ev('CC.MG.lives=1'); s.pg.wait_for_function('!document.getElementById("mgRes").hidden', timeout=8000)
+    sc = s.ev('CC.MG.score')
+    check('vóley: sin vidas termina y muestra el resultado', sc >= 3, sc)
+    check('vóley: sube la felicidad del gatito y el ánimo de vos (más que otros juegos)', s.ev('CC.S.pet.felicidad') > 40 and s.ev('CC.S.avatar.animo') >= 50 + 8 + 12 - 1, s.ev('[CC.S.pet.felicidad,CC.S.avatar.animo]'))
+    check('vóley: guarda el récord', s.ev('CC.S.best.voley') == sc)
+    s.pg.click('#mgDone'); check('vóley: sin errores', not s.errs, str(s.errs)); s.cerrar()
+    # no se juega con el gatito muy cansado, igual que los otros
+    s = Sesion(br).abrir(); s.ev("CC.S.pet.energia=5"); s.pg.click('#aPlay')
+    check('con el gatito cansado tampoco hay vóley', s.ev("document.getElementById('games').hidden"))
     s.cerrar()
 
 @prueba

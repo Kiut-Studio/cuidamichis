@@ -1,5 +1,14 @@
 # Cambios
 
+## 1.2.0 — Trabajo, vóley y ropa nueva
+- **Trabajar** (pestaña "Vos"): salís a trabajar, jugás un turno de minijuego (**El kiosco** o **Reparto**) y ganás 🍓 (más que jugando con el gatito).
+  - Cuesta: −18 comida, −12 higiene, −12 ánimo, y el gatito te extraña (−6 felicidad). El ánimo solo se recupera jugando con él.
+  - No se puede salir con el portón abierto, de noche, con poco hambre/higiene/ánimo ni si el gatito está enfermo.
+  - **Al volver, el portón queda abierto** y hay que cerrarlo: así el portón tiene un motivo y el riesgo de siempre se mantiene. Si se cierra la app en pleno turno, no queda nada abierto.
+- **Vóley juntos** (en "Jugar"): una actividad con el gatito. Tocás cuando la pelota llega a vos (3 vidas); da felicidad al gatito y más ánimo que los otros juegos.
+- **Ropa nueva** para ahorrar con el trabajo: gorra (90 🍓), auriculares (130), sombrero de paja (160), sombrero vaquero (200) y birrete (260). Sofía puede dibujarlas como `ropa_gorra`, `ropa_auris`, `ropa_paja`, `ropa_vaquero`, `ropa_birrete`.
+- Pruebas nuevas (trabajo y vóley) y tienda actualizada.
+
 ## 1.1.2
 - Hoja imprimible para Sofía (docs/hoja_sofi.pdf) y el procesador de dibujos ahora también acepta retratos por edad y caritas.
 
