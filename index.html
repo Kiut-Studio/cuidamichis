@@ -94,6 +94,13 @@ button:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
 .bar.mid i{background:var(--sun)}
 .bar.low i{background:var(--red);animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.55}}
+@keyframes barUp{0%{transform:scale(1)}30%{transform:scale(1.05,1.35);box-shadow:0 0 0 4px rgba(120,220,120,.65)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(120,220,120,0)}}
+@keyframes barDn{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes shimmer{0%{background-position:0 0}100%{background-position:28px 0}}
+@keyframes fruBump{0%{transform:scale(1)}35%{transform:scale(1.25) rotate(-4deg)}100%{transform:scale(1)}}
+.bar.up{animation:barUp .6s ease-out}.bar.dn{animation:barDn .5s}
+.bar.rising i{background-image:repeating-linear-gradient(110deg,rgba(255,255,255,.35) 0 7px,transparent 7px 14px);background-size:28px 100%;animation:shimmer .8s linear infinite}
+#fruPill.bump{animation:fruBump .45s ease-out}
 .acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:2px}
 .acts.two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .act{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px;border-radius:18px;background:var(--cream);font-size:15px;line-height:1.1}
@@ -196,7 +203,7 @@ button:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
 @keyframes tIn{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}100%{opacity:1;transform:translateX(-50%)}}
 
 .foot{font-size:12px;opacity:.6;margin-top:10px;text-align:center}
-@media (prefers-reduced-motion:reduce){#mgMsg,.card,#toast,#gateBtn.open,#lightBtn.need,#gateWarn.danger,.bar.low i{animation:none}}
+@media (prefers-reduced-motion:reduce){.bar.up,.bar.dn,.bar.rising i,#fruPill.bump,#mgMsg,.card,#toast,#gateBtn.open,#lightBtn.need,#gateWarn.danger,.bar.low i{animation:none}}
 
 /* un poco de relieve (brillito arriba de barras y botones) */
 .bar{position:relative}.bar i{position:relative}
@@ -586,7 +593,7 @@ function step(dt){
   p.felicidad=clamp(p.felicidad-DECAY_PET.felicidad*k.felicidad*m*dt*(p.energia<=0?2:1)*sl);
   p.limpieza=clamp(p.limpieza-DECAY_PET.limpieza*k.limpieza*m*dt*dirt);
   // energía: baja despierto, se recupera durmiendo (más rápido con la camita)
-  if(sleeping)p.energia=clamp(p.energia+gh*(S.own.cama?24:12)*(STAGES[S.stage]&&S.stage===0?1.3:1));
+  if(sleeping)p.energia=clamp(p.energia+gh*(S.own.cama?24:12)*(STAGES[S.stage]&&S.stage===0?1.3:1)*(napping&&!isNight()?10:1));   // la siesta de día rinde x10 (si no, en modo real casi no se notaba)
   else p.energia=clamp(p.energia-gh*(S.stage===0?5:3.5));
   // cacas: cada tantas horas del gatito (los bebés más seguido)
   if(!sleeping){S.cacaT-=gh;if(S.cacaT<=0){S.cacaT=(S.stage===0?2:3.5)+Math.random()*3;
@@ -763,7 +770,11 @@ const PET_ROWS=[['hambre','🍗','Comida'],['felicidad','😺','Felicidad'],['sa
 const AV_ROWS=[['hambre','🍓','Comida'],['higiene','🧼','Higiene'],['animo','🌈','Ánimo']];
 function buildStats(el,rows,pre){el.innerHTML=rows.map(([k,e,n])=>`<div class="stat"><span class="e">${e}</span><span class="n">${n}</span><span class="bar" id="${pre+k}B"><i></i></span><span class="v" id="${pre+k}V"></span></div>`).join('')}
 buildStats($('petStats'),PET_ROWS,'p_');buildStats($('avStats'),AV_ROWS,'a_');
-function setBar(pre,k,v){const b=$(pre+k+'B');b.firstChild.style.width=v.toFixed(1)+'%';b.className='bar'+(v<LOW?' low':v<60?' mid':'');$(pre+k+'V').textContent=Math.round(v)}
+const barPrev={};
+function setBar(pre,k,v){const b=$(pre+k+'B'),id=pre+k,o=barPrev[id];b.firstChild.style.width=v.toFixed(1)+'%';
+  b.className='bar'+(v<LOW?' low':v<60?' mid':'')+(o!==undefined&&v>o+.001&&v<99.9&&!b.dataset.flash?' rising':'');$(pre+k+'V').textContent=Math.round(v);
+  if(o!==undefined&&Math.abs(v-o)>=3){b.dataset.flash=1;b.classList.remove('rising');b.classList.add(v>o?'up':'dn');setTimeout(()=>{b.classList.remove('up','dn');delete b.dataset.flash},700)}
+  barPrev[id]=v}
 let fruShown=null;
 function render(){
   PET_ROWS.forEach(([k])=>setBar('p_',k,S.pet[k]));AV_ROWS.forEach(([k])=>setBar('a_',k,S.avatar[k]));
@@ -777,7 +788,7 @@ function render(){
   $('lightBtn').hidden=!(night||!S.luz);$('lightTxt').textContent=S.luz?'Apagar luz':'Prender luz';$('lightBtn').classList.toggle('need',night&&S.luz);
   const St=STAGES[Math.min(S.stage,3)];
   $('dayPill').textContent=`${night?'🌙':'☀️'} Día ${Math.floor(S.edad)+1} · ${St.em} ${St.name}${S.pers?' '+PERS[S.pers].em:''}`;
-  if(fruShown!==S.fru){fruShown=S.fru;$('fruN').textContent=S.fru}
+  if(fruShown!==S.fru){if(fruShown!==null&&S.fru>fruShown){const f=$('fruPill');f.classList.remove('bump');f.offsetWidth;f.classList.add('bump')}fruShown=S.fru;$('fruN').textContent=S.fru}
   const bagN=Object.values(S.inv).reduce((a,b)=>a+b,0);$('bagN').hidden=!bagN;$('bagN').textContent=bagN;
   $('musicBtn').classList.toggle('off',!S.music);
   if($('tabPetName').textContent!==nm())$('tabPetName').textContent=nm();
@@ -934,7 +945,7 @@ function resize(){
 }
 addEventListener('resize',resize);
 let cars=[],nextCar=2,gateA=0,clouds=[{x:.12,y:.10,s:1},{x:.58,y:.20,s:.75},{x:.92,y:.05,s:.9}],fruFly=[];
-let bgKey='',bgFar=null,bgNear=null,LAMP={x:0,y:0},WIN={x:0,y:0,on:false},critT=0,zT=0,spT=0,swT=0;
+let bgKey='',bgFar=null,bgNear=null,LAMP={x:0,y:0},WIN={x:0,y:0,on:false},critT=0,zT=0,spT=0,swT=0,pT=0,SHOOT=null;
 const BFLY=[{p:0,c:'#FF9EBB'},{p:2.4,c:'#FFD93D'},{p:4.1,c:'#C9B6FF'}];
 const FFLY=Array.from({length:10},(_,i)=>({a:i*1.7,b:i*.9+1,x:.08+((i*37)%84)/100,y:.56+((i*23)%38)/100}));
 const STARS=Array.from({length:32},(_,i)=>({x:((i*97+13)%100)/100,y:((i*53+7)%100)/100,s:.6+((i*31)%10)/10,sp:i%5===0}));
@@ -1052,6 +1063,9 @@ function buildBg(g,h,NK){
 
 /* ---------- cielo: sol, luna, estrellas y nubes ---------- */
 function skyThings(c,g,h,t,dt,NK){
+  if(NK>.6){if(!SHOOT&&Math.random()<dt*.06)SHOOT={x:W*(.45+Math.random()*.5),y:H*(.04+Math.random()*.12),l:1};   // de noche, de vez en cuando pasa una estrella fugaz
+    if(SHOOT){const q=SHOOT;q.l-=dt*1.1;q.x-=dt*W*.5;q.y+=dt*W*.22;c.save();c.globalAlpha=Math.max(0,q.l);const gr=c.createLinearGradient(q.x,q.y,q.x+70,q.y-30);gr.addColorStop(0,'#fff');gr.addColorStop(1,'rgba(255,255,255,0)');c.strokeStyle=gr;c.lineWidth=2.5;c.lineCap='round';c.beginPath();c.moveTo(q.x,q.y);c.lineTo(q.x+70,q.y-30);c.stroke();c.restore();if(q.l<=0)SHOOT=null}}
+  else SHOOT=null;
   const ry=g.fy-H*.10,hor=ry-H*.015,top=H*.075;
   if(NK>.15){for(const s of STARS){const a=NK*(.4+.6*Math.abs(Math.sin(t*1.7+s.x*20)));if(s.y>.52)continue;
     c.globalAlpha=a;const X0=s.x*W,Y0=s.y*hor*.9+6;if(s.sp)drawSpark(c,X0,Y0,3.4*s.s,'#FFF7C2');else{c.fillStyle='#fff';c.fillRect(X0,Y0,2*s.s,2*s.s)}}c.globalAlpha=1}
@@ -1123,6 +1137,8 @@ function drawParts(c,dt){
     else if(q.k==='yarn')drawYarn(c,q.x,q.y,q.r*.7,q.rot*3);
     else if(q.k==='spark')drawSpark(c,q.x,q.y,q.r*(.6+.4*Math.sin(q.rot*5)));
     else if(q.k==='sweat')drawDrop(c,q.x,q.y,q.r);
+    else if(q.k==='plus'){c.font=`800 ${q.r}px Nunito,sans-serif`;c.textAlign='center';c.textBaseline='middle';c.lineWidth=3.5;c.lineJoin='round';c.strokeStyle='#000';c.fillStyle='#8BE28B';const px=q.x+Math.sin(q.rot*1.7)*4;c.strokeText('+',px,q.y);c.fillText('+',px,q.y)}
+    else if(q.k==='ring'){c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=3;c.beginPath();c.arc(q.x,q.y,q.r*(1.6-q.l*.9),0,7);c.stroke()}
     else if(q.k==='zzz'){c.font=`700 ${q.r}px Caveat,cursive`;c.textAlign='center';c.textBaseline='middle';c.lineWidth=3.5;c.lineJoin='round';c.strokeStyle='#000';c.fillStyle='#fff';c.strokeText('z',q.x+Math.sin(q.rot*1.5)*4,q.y);c.fillText('z',q.x+Math.sin(q.rot*1.5)*4,q.y);c.textAlign='start';c.textBaseline='alphabetic'}}
   c.globalAlpha=1;parts=parts.filter(q=>q.l>0);
 }
@@ -1176,8 +1192,10 @@ function draw(t,dt){
   }
 
   // ---- gato ----
-  const now=performance.now(),p=S.pet,low=['hambre','felicidad','salud','limpieza'].some(k=>p[k]<LOW);
-  napping=!S.terminado&&!isNight()&&now-lastTouch>25000&&!low;
+  const now=performance.now(),p=S.pet,tired=p.energia<LOW,low=(tired?['hambre','salud']:['hambre','felicidad','salud','limpieza']).some(k=>p[k]<LOW);
+  const wasNap=napping;   // cansado: se echa una siesta enseguida (6 s) aunque esté un poco sucio o aburrido; si no, a los 25 s
+  napping=!S.terminado&&!isNight()&&now-lastTouch>(tired?6000:25000)&&!low;
+  if(napping&&!wasNap&&tired&&booted)queueToast(`😴 ${nm()} se echó una siesta: está recuperando energía`);
   let pose='quieto';
   if(ending)pose='durmiendo';
   else if(now<anim.excited)pose='feliz';
@@ -1218,8 +1236,9 @@ function draw(t,dt){
     if(!ending&&!asleep()&&key!=='hambre')thought(Math.min(W-24,rr.x+rr.w*hd0[0]+Math.max(22,g.cs*.12)),Math.max(24,rr.y-14),p.salud<LOW?'🤒':p.hambre<LOW?'🍗':p.limpieza<LOW?'🫧':p.energia<LOW?'💤':p.felicidad<LOW?'🧶':S.cacas.length>=3?'💩':S.pet.afinidad<AFI.lejos?'💔':null,t);
     catBox={x:rr.x,y:rr.y,w:rr.w,h:rr.h};catKey=key;
     // efectitos: zzz al dormir, chispas al festejar, gota de sudor del susto
-    const hd=hd0;zT-=dt;spT-=dt;swT-=dt;
+    const hd=hd0;zT-=dt;spT-=dt;swT-=dt;pT-=dt;
     if(pose==='durmiendo'&&!(ending&&ending.tipo!=='porton')&&zT<=0){zT=1.3;parts.push({k:'zzz',x:rr.x+rr.w*hd[0]+8,y:rr.y+rr.h*hd[1]-4,vx:.25,vy:-.45,r:14+Math.random()*6,l:1,rot:Math.random()*6})}
+    if(pose==='durmiendo'&&!ending&&p.energia<99&&pT<=0){pT=.9;parts.push({k:'plus',x:rr.x+rr.w*(.25+Math.random()*.5),y:rr.y+rr.h*.35,vx:(Math.random()-.5)*.3,vy:-.5,r:15+Math.random()*5,l:1,rot:Math.random()*6})}
     if(pose==='feliz'&&spT<=0){spT=.18;parts.push({k:'spark',x:rr.x+rr.w*(.15+Math.random()*.7),y:rr.y+rr.h*(.1+Math.random()*.5),vx:(Math.random()-.5)*.6,vy:-.3,r:6+Math.random()*5,l:.8,rot:Math.random()})}
     if(key==='miedo'&&!ending&&swT<=0){swT=.6;parts.push({k:'sweat',x:rr.x+rr.w*(hd[0]+.18),y:rr.y+rr.h*(hd[1]+.05),vx:.3,vy:.5,r:11,l:.7,rot:0})}
   }
@@ -1239,6 +1258,7 @@ function thought(x,y,em,t){if(!em)return;const c=ctx;y+=Math.sin(t*3)*2;TH={x,y}
 let catBox=null,catKey='contento',lastPet=0,shhT=0;
 cv.addEventListener('pointerdown',e=>{
   ac();if(S.terminado||ending)return;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  parts.push({k:'ring',x,y,vx:0,vy:0,r:22,l:.6,rot:0});
   // cacas primero
   for(let i=0;i<S.cacas.length;i++){const q=S.cacas[i];if(Math.hypot(x-q.x*W,y-pyOf(q,geo()))<26){
     act(()=>{S.cacas.splice(i,1);S.cares++;S.fru+=2;fruPop(2,q.x*W,q.y*H);addPet('limpieza',3)});return}}

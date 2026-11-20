@@ -546,6 +546,28 @@ def partida_vieja(br):
     s.pg.wait_for_timeout(1500); check('sigue sin errores un rato después', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba
+def energia_y_siesta(br):
+    """Cansado: se echa una siesta enseguida y la energía sube; y los efectos nuevos no rompen nada."""
+    s = Sesion(br).abrir(); cuidar(s)
+    s.ev("CC.S.pet.energia=10"); s.pg.wait_for_timeout(500)
+    s.ev("CC.S.pet.energia=10"); e0 = 10
+    s.pg.wait_for_timeout(9000); s.ev("for(const k of ['hambre','felicidad','salud','limpieza'])CC.S.pet[k]=100")
+    s.pg.wait_for_timeout(4000); e1 = s.ev('CC.S.pet.energia')
+    check('cansado y tranquilo: duerme la siesta y la energía sube', e1 > e0 + .2, f'{e0} -> {e1}')
+    s.pg.wait_for_timeout(1500); s.foto('siesta')
+    check('la barra de energía muestra que se está recuperando', s.ev("document.getElementById('p_energiaB').classList.contains('rising')"))
+    s.ev("CC.S.fru+=5")
+    try: s.pg.wait_for_function("document.getElementById('fruPill').classList.contains('bump')", timeout=2500); ok = True
+    except Exception: ok = False
+    check('el contador de frutillas rebota al ganar', ok)
+    s.ev("CC.S.pet.hambre=20")
+    try: s.pg.wait_for_function("document.getElementById('p_hambreB').classList.contains('dn')", timeout=2500); ok = True
+    except Exception: ok = False
+    check('la barra tiembla cuando baja de golpe', ok)
+    s.pg.mouse.click(200, 150); s.pg.wait_for_timeout(300)
+    check('tocar la escena no da errores', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
 def muerte_durante_minijuego(br):
     s = Sesion(br).abrir(); s.ev("CC.S.pet.felicidad=40")
     s.pg.click('#aPlay'); s.pg.click('[data-g=lana]'); esperar_juego(s)

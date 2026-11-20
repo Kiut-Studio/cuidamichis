@@ -1,5 +1,9 @@
 # Cambios
 
+## 1.4.0
+- Energía: si está cansado, el gatito se echa una siesta a los 6 segundos de dejarlo tranquilo (antes 25, y no si estaba sucio o aburrido). La siesta de día recupera 10 veces más rápido, así que se nota. Aviso al empezar.
+- Efectos nuevos: signos "+" verdes mientras recupera energía, brillo que corre por la barra mientras sube, destello al subir de golpe y temblor al bajar, rebote del contador de frutillas, ondas al tocar la escena y estrellas fugaces de noche.
+
 ## 1.3.2
 - Arreglo: si el guardado quedó con números rotos (energía o afinidad vacías, escena en blanco por la versión anterior), se reparan solos al abrir.
 - Arreglo: pantalla en blanco al abrir una partida guardada con una versión anterior (faltaba la afinidad). Ahora las partidas viejas reciben los valores nuevos por defecto.
