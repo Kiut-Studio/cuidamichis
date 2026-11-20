@@ -613,6 +613,8 @@ def fiestas_y_cumpleanos(br):
         check(f'{d}/{m}: fiesta con decoración', s.ev('CC.eventosHoy()')[0]['deco'] == n, s.ev('CC.eventosHoy()'))
     s.ev('CC.hoy(0,0)'); check('un día común no hay fiesta', s.ev('CC.eventosHoy().length') == 0)
     s.ev("document.getElementById('setBtn').click()"); s.ev("document.getElementById('cuBtn').click()"); s.pg.wait_for_timeout(200)
+    top = s.ev("(()=>{const r=document.getElementById('cumples').getBoundingClientRect();return !!document.elementFromPoint(r.left+r.width/2,r.top+40).closest('#cumples')})()")
+    check('la pantalla de cumpleaños se ve por encima de Ajustes', top)
     s.pg.fill('#cuN', 'Sofi'); s.pg.fill('#cuD', '3'); s.pg.select_option('#cuM', '7'); s.ev("document.getElementById('cuAdd').click()")
     check('se puede agregar el cumpleaños de Sofi', s.ev("CC.S.cumples.some(q=>q.n==='Sofi'&&q.d===3&&q.m===7)"))
     s.ev('CC.hoy(7,3)'); check('el 3/7 festeja a Sofi', any('Sofi' in x['n'] for x in s.ev('CC.eventosHoy()')))
