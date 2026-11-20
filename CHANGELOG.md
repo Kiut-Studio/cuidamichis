@@ -1,5 +1,9 @@
 # Cambios
 
+## 1.5.1
+- Pantalla de novedades (📣): se abre sola una vez por versión nueva a quien ya jugaba, y siempre se puede ver desde Ajustes. La lista está en `NEWS` dentro de `index.html` y tiene que coincidir con este archivo (hay una prueba que lo comprueba).
+- Arreglo: la pantalla de cumpleaños quedaba tapada por Ajustes.
+
 ## 1.5.0
 - **Clima real y estaciones**: el patio sigue el clima de Villarrica (Open-Meteo, sin clave), o el de donde estés, o se apaga en Ajustes. Lluvia, llovizna, tormenta (rayos que asustan al gatito), niebla, nubes y nieve. Con lluvia se ensucia más; con 34° o más se cansa antes. Estación del año por la fecha de verdad (hemisferio sur): hojas en otoño, pétalos en primavera, tinte frío en invierno.
 - **Fiestas y cumpleaños**: cumpleaños de Leandro el 25/11 (y los que agregues en Ajustes → Cumpleaños y fiestas), Navidad, Año Nuevo, Halloween y Día del Niño. Decoración, confeti, sombrerito para los cumpleaños y regalo de frutillas una sola vez por año.

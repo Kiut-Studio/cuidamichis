@@ -663,6 +663,31 @@ def avisos(br):
     check('sin errores', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba
+def novedades(br):
+    """Pantalla de novedades: desde Ajustes, una vez por versión y siempre al día con el CHANGELOG."""
+    import re
+    s = Sesion(br).abrir(); cuidar(s)
+    ver = s.ev('CC.VERSION'); cl = re.search(r'^## (\S+)', open(os.path.join(os.path.dirname(__file__), '..', 'CHANGELOG.md'), encoding='utf-8').read(), re.M).group(1)
+    check('la versión del juego es la del CHANGELOG', ver == cl, f'{ver} vs {cl}')
+    check('la primera novedad es la versión actual', s.ev('CC.NEWS[0].v') == ver)
+    check('el jugador nuevo no ve el cartel NUEVO de entrada', s.ev('CC.S.seenVersion') == ver)
+    s.ev("document.getElementById('setBtn').click()"); s.pg.wait_for_timeout(200)
+    check('Ajustes muestra la versión', ver in s.ev("document.getElementById('verLink').textContent"))
+    s.ev("document.getElementById('verLink').click()"); s.pg.wait_for_timeout(300); s.foto('novedades')
+    top = s.ev("(()=>{const r=document.getElementById('news').getBoundingClientRect();return !!document.elementFromPoint(r.left+r.width/2,r.top+60).closest('#news')})()")
+    check('las novedades se ven por encima de todo', top)
+    check('lista todas las versiones', s.ev("document.querySelectorAll('#newsList .newsVer').length") == s.ev('CC.NEWS.length'))
+    s.ev("document.getElementById('newsOk').click()"); check('se cierran', s.ev("document.getElementById('news').hidden"))
+    # jugador que ya jugaba, con una versión vieja: se abre sola (sin #prueba) y después ya no
+    editar_guardado(s, "x.seenVersion='1.0.0';x.name='Michi'")
+    s.pg.goto(f'http://localhost:{PORT}/index.html'); s.pg.wait_for_timeout(1500)
+    check('con versión nueva se abren solas', not s.ev("document.getElementById('news').hidden"))
+    check('y marcan lo nuevo', s.ev("!!document.querySelector('#newsList .newsTag')"))
+    s.ev("document.getElementById('newsOk').click()"); s.pg.goto(f'http://localhost:{PORT}/index.html'); s.pg.wait_for_timeout(1500)
+    check('ya vistas, no se repiten', s.ev("document.getElementById('news').hidden"))
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
 def muerte_durante_minijuego(br):
     s = Sesion(br).abrir(); s.ev("CC.S.pet.felicidad=40")
     s.pg.click('#aPlay'); s.pg.click('[data-g=lana]'); esperar_juego(s)

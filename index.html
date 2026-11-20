@@ -94,6 +94,16 @@ button:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
 .bar.mid i{background:var(--sun)}
 .bar.low i{background:var(--red);animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.55}}
+.card.newsCard{text-align:left}.card.newsCard .title{text-align:center}
+.newsVer{margin-top:12px;border:3px solid var(--ink);border-radius:14px;padding:10px 14px;background:var(--white)}
+.newsVer.now{background:var(--cream);box-shadow:4px 4px 0 var(--ink)}
+.newsVer h3{margin:0;font-family:var(--hand);font-size:26px;line-height:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.newsVer h3 small{font-family:var(--ui);font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.65}
+.newsVer ul{margin:8px 0 0;padding:0 0 0 4px;list-style:none;display:grid;gap:5px;font-size:14px;line-height:1.25}
+.newsVer li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:4px}
+.newsTag{display:inline-block;background:var(--red);color:var(--white);border-radius:999px;padding:1px 10px;font-size:11px;letter-spacing:.1em}
+.verLink{background:none;border:0;font:inherit;font-size:12px;opacity:.7;text-decoration:underline;padding:6px;margin-top:6px;color:inherit}
+#newsOk{background:var(--red);color:var(--white);margin-top:14px}
 .lg{display:flex;gap:10px;align-items:center;padding:7px 10px;border:3px solid var(--ink);border-radius:14px;background:#EEE;opacity:.7}
 .lg.got{background:#FFF3C4;opacity:1}.lg .e{font-size:26px;width:34px;text-align:center}.lg small{opacity:.75}
 .album{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
@@ -451,6 +461,7 @@ body.compact #stage{width:100%;height:100dvh;border-radius:0;border:0;box-shadow
         <div class="seg" id="avSeg"><button data-v="1">🔔 Avisarme</button><button data-v="0">🔕 No avisar</button></div>
         <div class="lbl" id="avTxt"></div>
         <button class="btn thick-sm smBtn" id="cuBtn">🎂 Cumpleaños y fiestas</button>
+        <button class="verLink" id="verLink"></button>
         <div class="lbl">Sonido</div>
         <div class="seg" id="sfxSeg"><button data-s="1">🔊 Con sonidos</button><button data-s="0">🔇 Sin sonidos</button></div>
         <div class="row">
@@ -470,6 +481,14 @@ body.compact #stage{width:100%;height:100dvh;border-radius:0;border:0;box-shadow
         <div class="row cuForm"><input id="cuN" maxlength="14" placeholder="Nombre"><input id="cuD" type="number" min="1" max="31" placeholder="Día"><select id="cuM"></select></div>
         <button class="btn thick-sm smBtn" id="cuAdd">➕ Agregar</button>
         <button class="btn bigBtn" id="cuBack">Listo</button>
+      </div>
+    </div>
+
+    <div id="news" class="overlay" hidden>
+      <div class="card thick newsCard">
+        <div class="title">📣 Novedades</div>
+        <div id="newsList"></div>
+        <button class="btn bigBtn" id="newsOk">¡A jugar! →</button>
       </div>
     </div>
   </div>
@@ -548,7 +567,7 @@ const fresh=()=>Object.assign({v:1,
   flagPersonalizacion:false,                // personalización de la mascota: apagada por ahora
   last:Date.now(),char:null,mode:'real',music:true,sfx:true,arteSofia:true,
   fru:10,inv:{},own:{},wear:'',streak:0,recuerdos:[],tutDone:false,best:{},
-  logros:{},tot:{},clima:'vill',gps:null,avisos:false,eventos:{},cumples:[{n:'Leandro',d:25,m:11}]},freshPet());
+  seenVersion:'',logros:{},tot:{},clima:'vill',gps:null,avisos:false,eventos:{},cumples:[{n:'Leandro',d:25,m:11}]},freshPet());
 let S=fresh();
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===1){const f=fresh(),dA=f.avatar,dP=f.pet,dC=f.care;S=Object.assign(f,s);S.avatar=Object.assign(dA,s.avatar);S.pet=Object.assign(dP,s.pet);S.care=Object.assign(dC,s.care||{});for(const [o,d] of [[S.pet,freshPet().pet],[S.avatar,fresh().avatar]])for(const k in d)if(typeof d[k]==='number'&&!Number.isFinite(o[k]))o[k]=d[k]}}catch(e){}   /* un número roto (null/NaN) en un guardado se cambia por el valor por defecto */
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -639,7 +658,7 @@ async function programarAvisos(){   // al salir: se anota cuándo le va a hacer 
     for(const [k,txt] of [['hambre','🍗 {n} tiene hambre'],['felicidad','😿 {n} está aburrido: ¡juguemos!'],['limpieza','🫧 {n} está sucio']]){const t=(p[k]-LOW)/(DECAY_PET[k]*m*.7);if(t<sec){sec=Math.max(60,t);que=txt}}
     const c=await caches.open('cc-aviso');await c.put('cc-aviso.json',new Response(JSON.stringify({due:Date.now()+sec*1000,txt:que.replace('{n}',nm())})));
     if(r.periodicSync){const st=await navigator.permissions.query({name:'periodic-background-sync'});if(st.state==='granted')await r.periodicSync.register('cc-aviso',{minInterval:3600e3})}}catch(e){}}
-function newPet(){const keep={};['v','secretos','flagPersonalizacion','char','mode','music','sfx','arteSofia','fru','inv','own','wear','streak','recuerdos','tutDone','best','logros','tot','clima','gps','avisos','eventos','cumples'].forEach(k=>keep[k]=S[k]);
+function newPet(){const keep={};['v','secretos','flagPersonalizacion','char','mode','music','sfx','arteSofia','fru','inv','own','wear','streak','recuerdos','tutDone','best','logros','tot','clima','gps','avisos','eventos','cumples','seenVersion'].forEach(k=>keep[k]=S[k]);
   S=Object.assign(fresh(),keep,freshPet(),{last:Date.now()})}
 
 const CHARS=[{id:'sofi',name:'Sofi'},{id:'deisy',name:'Deisy'},{id:'leandro',name:'Leandro'},{id:'nora',name:'Nora'},{id:'cinthia',name:'Cinthia'}];
@@ -1718,6 +1737,42 @@ const _rs=renderSets;renderSets=function(){_rs();
   document.querySelectorAll('#avSeg button').forEach(b=>b.setAttribute('aria-pressed',!!+b.dataset.v===!!S.avisos));$('avTxt').textContent=avTexto()};
 setInterval(()=>{if(document.hidden&&S.char&&!S.terminado&&$('intro').hidden&&S.avisos){catchUp();checkWarn()}},30000);   // en segundo plano el navegador frena el juego: este reloj lento es el que avisa
 
+
+/* ---------- novedades: lo que ven los jugadores, la más nueva primero (mantener igual que CHANGELOG.md) ---------- */
+const VERSION='1.5.1';
+const NEWS=[
+  {v:'1.5.1',fecha:'noviembre 2026',titulo:'Novedades en el juego',items:[
+    ['📣','Ahora hay una pantalla de novedades: se abre sola cuando sale una versión nueva y la encontrás siempre en ⚙️ Ajustes.'],
+    ['🎂','Arreglo: la pantalla de cumpleaños se abría escondida detrás de Ajustes.']]},
+  {v:'1.5.0',fecha:'noviembre 2026',titulo:'Clima, fiestas, logros y avisos',items:[
+    ['🌧️','Clima real: el patio sigue el tiempo de Villarrica (o de donde estés). Con lluvia el gatito se ensucia más y con mucho calor se cansa antes. En ⚙️ se puede cambiar o apagar.'],
+    ['🍂','Estaciones: hojas que caen en otoño, pétalos en primavera.'],
+    ['🎂','Fiestas: el 25/11 es el cumple de Leandro, y también hay Navidad, Año Nuevo, Halloween y Día del Niño, con decoración y regalo de 🍓. Agregá otros cumpleaños en ⚙️.'],
+    ['🏆','25 logros (algunos secretos) y un álbum de hasta 16 fotos que se sacan solas en los momentos especiales.'],
+    ['🔔','Avisos: podés pedir que te avise cuando el gatito necesite algo.']]},
+  {v:'1.4.0',fecha:'noviembre 2026',titulo:'Siesta y más efectos',items:[
+    ['😴','Si está cansado, se echa una siesta enseguida y la energía sube de verdad.'],
+    ['✨','Barras que destellan al subir y tiemblan al bajar, frutillas que rebotan, ondas al tocar y estrellas fugaces de noche.']]},
+  {v:'1.3.1',fecha:'noviembre 2026',titulo:'Dibujos de Sofía a elección',items:[
+    ['🖍️','Podés elegir en ⚙️ si ves los dibujos de Sofía o los provisorios.'],
+    ['🔧','La cuenta regresiva de los minijuegos y la burbuja de sueño quedaron bien alineadas.']]},
+  {v:'1.3.0',fecha:'noviembre 2026',titulo:'Afinidad',items:[
+    ['💞','Cada gatito tiene su afinidad con vos: sube con cariño y baja si lo descuidás. Si baja mucho, te rechaza los mimos y hasta puede irse de casa.']]},
+  {v:'1.2.0',fecha:'noviembre 2026',titulo:'Trabajo y vóley',items:[
+    ['💼','Salí a trabajar (kiosco y reparto) para ganar 🍓 y comprar ropa nueva.'],
+    ['🏐','Nueva actividad juntos: vóley con el gatito.']]}];
+function openNews(){const box=$('newsList');box.textContent='';
+  NEWS.forEach((n,i)=>{const d=document.createElement('div');d.className='newsVer'+(i===0?' now':'');
+    const h=document.createElement('h3');h.textContent='Versión '+n.v+' ';const sm=document.createElement('small');sm.textContent=n.fecha;h.appendChild(sm);
+    if(i===0&&S.seenVersion!==n.v){const t=document.createElement('span');t.className='newsTag';t.textContent='NUEVO';h.appendChild(t)}
+    const tt=document.createElement('div');tt.style.cssText='font-size:14px;margin-top:2px;opacity:.8';tt.textContent=n.titulo;
+    const ul=document.createElement('ul');for(const [em,tx] of n.items){const li=document.createElement('li'),e=document.createElement('span'),t=document.createElement('span');e.textContent=em;t.textContent=tx;li.append(e,t);ul.appendChild(li)}
+    d.append(h,tt,ul);box.appendChild(d)});
+  show('news',true)}
+function closeNews(){show('news',false);if(S.seenVersion!==VERSION){S.seenVersion=VERSION;persist()}}
+$('verLink').textContent=`Versión ${VERSION} · ver novedades`;
+$('verLink').onclick=()=>{show('sets',false);openNews()};$('newsOk').onclick=closeNews;
+
 /* ---------- bucle ---------- */
 let prev=performance.now(),booted=false,saveT=0,lastSec=0;
 function loop(n){
@@ -1734,10 +1789,11 @@ function boot(){
   cacaWarned=S.cacas.length;
   render();persist();
   booted=true;loadClima();checkEventos();
-  if(!S.char)openIntro(true);
+  if(!S.char){S.seenVersion=VERSION;openIntro(true)}
   else if(S.terminado)showFinal();
   else if(!S.name)openNaming();
-  else{if(away>120)toastQ.unshift(`⏳ Estuviste ${fmtDur(away*1000)} afuera.${S.cacas.length?` Hay ${S.cacas.length} 💩 en el patio.`:''} ¡Fijate cómo está!`);
+  else{if(S.seenVersion!==VERSION&&location.hash!=='#prueba')setTimeout(openNews,500);
+    if(away>120)toastQ.unshift(`⏳ Estuviste ${fmtDur(away*1000)} afuera.${S.cacas.length?` Hay ${S.cacas.length} 💩 en el patio.`:''} ¡Fijate cómo está!`);
     if(toastQ.length)toast(toastQ.shift())}
   requestAnimationFrame(loop);
   setTimeout(resize,300);
@@ -1748,7 +1804,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){napping=fa
 addEventListener('pagehide',()=>{catchUp();persist()});
 if(document.readyState==='complete')boot();else addEventListener('load',boot);
 
-if(location.hash==='#prueba')window.CC={get S(){return S},get WX(){return WX},setWx:(code,temp)=>setWx({code,temp,wind:0},false),hoy:(m,d)=>{HOY=m?new Date(2026,m-1,d,12):null;checkEventos()},eventosHoy,estacion,checkLogros,checkEventos,foto,fotosLoad,loadClima,LOGROS,avisar,programarAvisos,get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,goWork,workBlock,mgEnd,geo,STAGES,AFI,addAfi,umbral,catSrc,sofiaOn,thoughtPos:()=>TH,catBox:()=>catBox,
+if(location.hash==='#prueba')window.CC={get S(){return S},openNews,NEWS,VERSION,get WX(){return WX},setWx:(code,temp)=>setWx({code,temp,wind:0},false),hoy:(m,d)=>{HOY=m?new Date(2026,m-1,d,12):null;checkEventos()},eventosHoy,estacion,checkLogros,checkEventos,foto,fotosLoad,loadClima,LOGROS,avisar,programarAvisos,get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,goWork,workBlock,mgEnd,geo,STAGES,AFI,addAfi,umbral,catSrc,sofiaOn,thoughtPos:()=>TH,catBox:()=>catBox,
   age(days){const n=Math.round(days*86400/ageF());for(let i=0;i<n&&!S.terminado;i++){S.last+=1000;step(1)}S.last=Date.now();render()}};
 if(window.PWA&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 })();
