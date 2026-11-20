@@ -541,6 +541,8 @@ def partida_vieja(br):
     check('recibe la afinidad por defecto', s.ev('typeof CC.S.pet.afinidad') == 'number' and s.ev('CC.S.pet.afinidad') <= 40, s.ev('CC.S.pet.afinidad'))
     check('y los dibujos de Sofía activados', s.ev('CC.S.arteSofia') is True)
     check('se ve el juego (no queda en blanco)', s.ev("document.getElementById('panePet').offsetHeight") > 100 and s.ev("document.getElementById('p_afinidadB')!==null"))
+    editar_guardado(s, "x.pet.energia=null;x.pet.afinidad=null;x.avatar.animo=null")
+    check('un guardado con números rotos (null) se repara', s.ev('Number.isFinite(CC.S.pet.energia)&&Number.isFinite(CC.S.pet.afinidad)&&Number.isFinite(CC.S.avatar.animo)') and not s.errs, str(s.errs))
     s.pg.wait_for_timeout(1500); check('sigue sin errores un rato después', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba

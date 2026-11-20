@@ -1,6 +1,7 @@
 # Cambios
 
 ## 1.3.2
+- Arreglo: si el guardado quedó con números rotos (energía o afinidad vacías, escena en blanco por la versión anterior), se reparan solos al abrir.
 - Arreglo: pantalla en blanco al abrir una partida guardada con una versión anterior (faltaba la afinidad). Ahora las partidas viejas reciben los valores nuevos por defecto.
 
 ## 1.3.1 — Dibujos de Sofía opcionales y detalles
