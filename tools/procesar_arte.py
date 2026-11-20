@@ -10,7 +10,7 @@ ENT = RAIZ / 'arte' / 'entrada'
 POSES = ['feliz','contento','triste','hambre','comiendo','jugando','banio','miedo','enfermo','bostezo','dormido1','dormido2']
 EDADES = ['edad_bebe','edad_joven','edad_adulto','edad_abuelo']
 CARAS = ['cara_feliz','cara_amor','cara_enojo','cara_sorpresa','cara_triste','cara_sueno']
-EXTRAS = ['tazon','cama','pelota','lana','pescado','gota','caca','corazon','final_vejez','final_descuido','final_porton']
+EXTRAS = ['tazon','cama','pelota','lana','pescado','gota','caca','corazon','final_vejez','final_descuido','final_porton','final_abandono']
 
 def negro(im):
     """Versión del gato negro: pasa el naranja/crema a grises oscuros, conserva el trazo."""

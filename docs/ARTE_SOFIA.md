@@ -16,7 +16,7 @@
 (Hay una hoja para imprimir con todo: `docs/hoja_sofi.pdf`.)
 
 ## Opcionales (si no están, el juego usa su dibujo de código)
-`tazon`, `cama`, `pelota`, `lana`, `pescado`, `gota`, `caca`, `corazon`, `final_vejez`, `final_descuido`, `final_porton`, `ropa_<nombre>`.
+`tazon`, `cama`, `pelota`, `lana`, `pescado`, `gota`, `caca`, `corazon`, `final_vejez`, `final_descuido`, `final_porton`, `final_abandono`, `ropa_<nombre>`.
 Ropa que hay hoy en la tienda: `ropa_mono`, `ropa_flor`, `ropa_galera`, `ropa_corona` y las de trabajo `ropa_gorra`, `ropa_auris`, `ropa_paja`, `ropa_vaquero`, `ropa_birrete`.
 
 ## Para tener en cuenta

@@ -1,5 +1,14 @@
 # Cambios
 
+## 1.3.0 — Afinidad
+- Barra nueva **💞 Afinidad** (0 a 100, **de cada gatito**; arranca en 40): cuánto te quiere.
+- **Sube** con mimos (cada 45 s), jugar (más con el vóley), atenderlo cuando lo necesita y los días bien cuidados.
+- **Baja** si lo descuidás (necesidades en rojo), si hace más de 8 horas que no le das cariño (darle de comer o bañarlo solo no alcanza; de noche no cuenta), si lo despertás de noche y con cada turno de trabajo (−4). Mientras no estás pierde como máximo 25 puntos.
+- **Consecuencias de la afinidad baja:** por debajo de 50 los mimos valen la mitad; por debajo de 25 a veces los rechaza (😾), se queda más lejos, los juegos le suben menos la felicidad y **el portón le tienta el doble**. Avisa cuando está solo y cuando piensa en irse.
+- **Final nuevo "se fue de casa"**: si la afinidad queda en 0 durante 2 días del gatito, sale por el portón y no vuelve (no se activa mientras no estás).
+- **Con afinidad alta (70+):** carita de amor, juegos que rinden 20 % más y el portón le tienta menos.
+- Dibujo opcional `final_abandono` para Sofía. Pruebas nuevas de afinidad.
+
 ## 1.2.0 — Trabajo, vóley y ropa nueva
 - **Trabajar** (pestaña "Vos"): salís a trabajar, jugás un turno de minijuego (**El kiosco** o **Reparto**) y ganás 🍓 (más que jugando con el gatito).
   - Cuesta: −18 comida, −12 higiene, −12 ánimo, y el gatito te extraña (−6 felicidad). El ánimo solo se recupera jugando con él.

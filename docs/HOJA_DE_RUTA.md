@@ -5,6 +5,9 @@
 - Gráficos nuevos, noche con luz, celular acostado, compatibilidad con Safari.
 - Documentación y sistema para recibir los dibujos de Sofía.
 
+## Ya hecho (1.3.0)
+- Afinidad por gatito (sube con cariño, baja con descuido, trabajo de más y falta de cariño) y final "se fue de casa".
+
 ## Ya hecho (1.2.0)
 - Trabajo (kiosco y reparto) con salida por el portón, vóley con el gatito y ropa nueva para comprar con lo que se gana.
 

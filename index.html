@@ -444,7 +444,7 @@ const NIGHT_FROM=21, NIGHT_TO=7;
 // tienda
 const SHOP=[
   {g:'Comida y cuidado',items:[
-    {id:'atun',em:'🐟',name:'Atún',d:'+35 comida, +10 felicidad',p:6,use:()=>{addPet('hambre',35);addPet('felicidad',10);anim.eat=performance.now();anim.excited=performance.now()+1600;sCrunch();sMeow(.35)}},
+    {id:'atun',em:'🐟',name:'Atún',d:'+35 comida, +10 felicidad',p:6,use:()=>{addPet('hambre',35);addPet('felicidad',10);addAfi(1.5);anim.eat=performance.now();anim.excited=performance.now()+1600;sCrunch();sMeow(.35)}},
     {id:'leche',em:'🥛',name:'Lechita',d:'+20 comida, +5 salud',p:3,use:()=>{addPet('hambre',20);addPet('salud',5);anim.eat=performance.now();sCrunch()}},
     {id:'remedio',em:'💊',name:'Remedio',d:'+40 salud',p:10,use:()=>{addPet('salud',40);hearts(3);sYay()}},
     {id:'jabon',em:'🧴',name:'Champú rico',d:'+45 limpieza, +5 felicidad',p:4,use:()=>{addPet('limpieza',45);addPet('felicidad',5);burst('bubbles');sSplash()}}]},
@@ -465,16 +465,20 @@ const SHOP=[
     {id:'birrete',em:'🎓',name:'Birrete',d:'Se graduó de gatito',p:260,perm:1,wear:1}]}
 ];
 // trabajo: lo que cuesta cada turno (el ánimo solo se recupera jugando con el gatito)
-const WORK={hambre:18,higiene:12,animo:12,extrana:6,minimo:25};
+const WORK={hambre:18,higiene:12,animo:12,extrana:6,afinidad:4,minimo:25};
+/* AFINIDAD (0-100, por gatito): cuánto te quiere. Sube con mimos, juegos y atenderlo; baja si lo descuidás, si hace horas que no le das cariño
+   (comida y baño solos no alcanzan) o si trabajás de más. Baja → mimos que valen menos o que rechaza, juegos que rinden menos, se queda lejos y
+   el portón le tienta más. Si llega a 0 y se queda así dos días, se va de casa. Mientras no estás, pierde como máximo `tope` puntos. */
+const AFI={ini:40,pocas:50,lejos:25,cerca:70,descuido:1.2,ausente:1,horasAusente:8,horasFinal:48,tope:25};
 const ITEM={};SHOP.forEach(g=>g.items.forEach(i=>ITEM[i.id]=i));
 
 /* ---------- guardado (localStorage; distinto de Dina Run y Dina Beat, comparten sitio) ---------- */
 const KEY='conCuidado.v1';
 const freshPet=()=>({
   avatar:{hambre:100,higiene:100,animo:100},
-  pet:{hambre:100,felicidad:100,salud:100,limpieza:100,energia:100},
+  pet:{hambre:100,felicidad:100,salud:100,limpieza:100,energia:100,afinidad:AFI.ini},
   porton:false,tPorton:0,luz:true,cacas:[],cacaT:2,
-  edad:0,stage:0,pers:'',care:{comida:0,juego:0,mimo:0,banio:0},bad:0,good:0,
+  idle:0,tAband:0,edad:0,stage:0,pers:'',care:{comida:0,juego:0,mimo:0,banio:0},bad:0,good:0,
   terminado:false,final:'',born:Date.now(),diedAt:0,cares:0,growPending:false,lastDay:0,name:''});
 const fresh=()=>Object.assign({v:1,
   secretos:{camara_desbloqueada:false},     // reservado para el secreto de la cámara (todavía sin hacer)
@@ -557,7 +561,7 @@ function step(dt){
   // días cumplidos: premio si el día fue bueno
   const day=Math.floor(S.edad);
   if(day>S.lastDay){S.lastDay=day;const ok=S.good>=S.bad;S.streak=ok?S.streak+1:0;S.good=0;S.bad=0;
-    if(ok){const b=5+Math.min(10,S.streak);S.fru+=b;queueToast(`🌞 ¡Un día más con ${nm()}! Racha ${S.streak} · +${b} 🍓`)}else queueToast(`🌧️ Ayer fue un mal día para ${nm()}. Se cortó la racha.`)}
+    if(ok){addAfi(2);const b=5+Math.min(10,S.streak);S.fru+=b;queueToast(`🌞 ¡Un día más con ${nm()}! Racha ${S.streak} · +${b} 🍓`)}else queueToast(`🌧️ Ayer fue un mal día para ${nm()}. Se cortó la racha.`)}
   // necesidades (Godot) con los ajustes de la personalidad
   const k={hambre:P==='gordito'?.7:1,felicidad:P==='mimoso'?.8:P==='callejero'?.7:1,limpieza:P==='limpito'?.6:1};
   const sleeping=asleep(),sl=sleeping?.5:1; // durmiendo gasta menos
@@ -582,6 +586,11 @@ function step(dt){
   const lowAny=p.hambre<LOW||p.felicidad<LOW||p.limpieza<LOW||p.salud<LOW;
   if(lowAny)S.bad+=dt;else S.good+=dt;
   if(S.stage===1&&lowAny)S.care.descuido=(S.care.descuido||0)+dt;
+  // afinidad: baja si lo descuidás o si hace horas que no le das cariño (de noche duerme y no cuenta); en 0 por días, se va
+  S.idle+=dt;let perd=lowAny?AFI.descuido:0;
+  if(S.idle*ageF()/3600>AFI.horasAusente&&!sleeping)perd+=AFI.ausente;
+  if(perd)addAfi(-perd*gh);
+  if(p.afinidad<=0&&!offAfi){S.tAband+=gh;if(S.tAband>=AFI.horasFinal)return endGame('abandono')}else if(p.afinidad>5)S.tAband=0;
   // al amanecer se prende la luz sola
   if(wasNight&&!isNight()&&!S.luz){S.luz=true;queueToast(`☀️ ¡Buen día! Se despertó ${nm()}`)}
   // riesgo ambiental: el portón abierto
@@ -589,7 +598,7 @@ function step(dt){
   S.tPorton+=dt;
   if(S.tPorton>=umbral()&&Math.random()<PROB_ACCIDENTE*dt)endGame('porton');
 }
-const umbral=()=>MODES[S.mode].umbral*(S.pers==='callejero'?.5:1);
+const umbral=()=>MODES[S.mode].umbral*(S.pers==='callejero'?.5:1)*(S.pet.afinidad>=AFI.cerca?1.5:S.pet.afinidad<AFI.lejos?.5:1);
 function decidePers(){
   const c=S.care,joven=(STAGES[1].until-STAGES[0].until)*86400/ageF();
   if((c.descuido||0)>joven*.3)return 'callejero';
@@ -601,7 +610,9 @@ function catchUp(){
   let sec=Math.floor((now-S.last)/1000);
   if(sec<=0)return 0;
   if(sec>MAX_OFFLINE){S.last=now-MAX_OFFLINE*1000;sec=MAX_OFFLINE}
+  if(sec>60)offAfi={loss:0};     // estuviste afuera: la afinidad pierde como máximo AFI.tope
   for(let i=0;i<sec&&!S.terminado;i++){S.last+=1000;step(1)}
+  offAfi=null;
   if(!S.terminado)S.last=Math.max(S.last,now-999);
   return sec;
 }
@@ -609,6 +620,7 @@ function catchUp(){
 /* ---------- finales ---------- */
 const FINALES={
   porton:{t:'Fin',msg:n=>`Dejaste el portón abierto demasiado tiempo.<br>${n} salió a la calle y fue atropellado.`},
+  abandono:{t:'Fin',msg:n=>`${n} sintió que ya no lo querías cerca.<br>Una mañana salió por el portón y no volvió. Ojalá encuentre a alguien que lo mime. 💔`},
   descuido:{t:'Fin',msg:n=>`${n} pasó demasiado tiempo sin los cuidados que necesitaba.<br>Se fue apagando de a poco.`},
   vejez:{t:'Una vida feliz',msg:n=>`${n} vivió muchos años a tu lado.<br>Una tarde se acurrucó al sol y se durmió tranquilo, para siempre. 🌸<br><b>+50 🍓</b> por cuidarlo toda su vida.`,good:1}
 };
@@ -626,7 +638,7 @@ function endGame(tipo){
 }
 function fmtDur(ms){const s=Math.max(0,ms/1000|0),d=s/86400|0,h=(s%86400)/3600|0,mi=(s%3600)/60|0;
   return d?`${d} día${d>1?'s':''} y ${h} h`:h?`${h} h ${mi} min`:mi?`${mi} min`:`${s} s`}
-const FEM={porton:'🚪',descuido:'🥀',vejez:'🌸'};
+const FEM={porton:'🚪',descuido:'🥀',abandono:'💔',vejez:'🌸'};
 function showFinal(){
   const F=FINALES[S.final]||{t:'Fin',msg:()=>'Fin del juego.'};
   $('final').classList.toggle('good',!!F.good);
@@ -641,6 +653,11 @@ function finalScene(c,tipo,good){
   c.clearRect(0,0,440,340);
   const im=X('final_'+tipo);   // dibujo de Sofía para este final (opcional)
   if(im){const k=Math.min(440/im.naturalWidth,340/im.naturalHeight),w=im.naturalWidth*k,h=im.naturalHeight*k;c.drawImage(im,(440-w)/2,(340-h)/2,w,h);return}
+  if(tipo==='abandono'){   // patio vacío: el plato sin nadie y el gatito lejos, chiquito
+    const sk=c.createLinearGradient(0,0,0,340);sk.addColorStop(0,'#F6D5C0');sk.addColorStop(1,'#FFF1E6');c.fillStyle=sk;c.fillRect(0,0,440,340);
+    c.fillStyle='#A9C9A0';c.strokeStyle='#000';c.lineWidth=3;c.beginPath();c.ellipse(220,296,196,32,0,0,7);c.fill();c.stroke();
+    drawBowl(c,120,290,40,0);drawCat(c,'triste',350,268,84,isBlack(),0,'');
+    c.font='44px serif';c.textAlign='center';c.textBaseline='middle';c.fillStyle='#000';c.fillText('💔',220,110);c.textAlign='start';c.textBaseline='alphabetic';return}
   const gr=c.createRadialGradient(220,190,10,220,190,215);gr.addColorStop(0,good?'rgba(255,233,168,.6)':'rgba(190,170,230,.3)');gr.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=gr;c.fillRect(0,0,440,340);
   c.fillStyle=good?'#8FD18A':'#51615C';c.strokeStyle='#000';c.lineWidth=3;c.beginPath();c.ellipse(220,296,196,32,0,0,7);c.fill();c.stroke();
   const R=rng(5),cols=good?['#FF9EBB','#FFF0A0','#FFFFFF','#C9B6FF']:['#B9A9D9','#D8CBE8','#9C8CC0','#CFC3E6'],T=good?(x=>x):(x=>mixC(x,'#2B2260',.35));
@@ -659,12 +676,18 @@ let lastTouch=performance.now();
 const anim={excited:0,eat:0,bath:0,shower:0,play:0,angry:0};
 function act(fn){if(S.terminado||ending)return;ac();catchUp();if(S.terminado||ending)return;if(napping){napping=false}fn();S.cares++;lastTouch=performance.now();persist();render()}
 const addAv=(k,v)=>S.avatar[k]=clamp(S.avatar[k]+v), addPet=(k,v)=>S.pet[k]=clamp(S.pet[k]+v);
+let offAfi=null,lastAfiMimo=-1e9;   // offAfi: pérdida acumulada mientras estabas afuera (tiene tope)
+function addAfi(v){const P=S.pers,p=S.pet;
+  if(v>0)v*=(1-p.afinidad/130)*(P==='mimoso'?1.25:1);            // cuanto más lo querés, más cuesta subir
+  else{v*=P==='callejero'?1.25:1;if(offAfi){const room=Math.max(0,AFI.tope-offAfi.loss);v=-Math.min(-v,room);offAfi.loss-=v}}
+  p.afinidad=clamp(p.afinidad+v)}
+const afiFel=()=>S.pet.afinidad<AFI.lejos?.6:S.pet.afinidad>=AFI.cerca?1.2:1;
 // frutilla de premio solo si lo necesitaba (así no conviene apretar sin parar)
-function earn(need,n=1){if(need<70){S.fru+=n;fruPop(n)}}
-function wakeCheck(){if(isNight()&&!S.luz){addPet('felicidad',-3);anim.angry=performance.now()+1800;toast(`😾 Despertaste a ${nm()}… ¡es de noche!`)}}
+function earn(need,n=1){if(need<70){S.fru+=n;fruPop(n);addAfi(1)}}   // atenderlo cuando lo necesita también lo acerca
+function wakeCheck(){if(isNight()&&!S.luz){addPet('felicidad',-3);addAfi(-2);anim.angry=performance.now()+1800;toast(`😾 Despertaste a ${nm()}… ¡es de noche!`)}}
 $('aFeed').onclick=()=>act(()=>{wakeCheck();earn(S.pet.hambre);addPet('hambre',ACC.alimentar);S.care.comida++;anim.eat=performance.now();anim.excited=performance.now()+1600;sCrunch();sMeow(.35)});
 function playEffects(fel){ // lo que tiene en común jugar rápido y un minijuego
-  const P=S.pers;addPet('felicidad',fel*(P==='jugueton'?1.5:1)+(S.own.pelota?8:0));
+  const P=S.pers;addPet('felicidad',fel*(P==='jugueton'?1.5:1)*afiFel()+(S.own.pelota?8:0));S.idle=0;addAfi(3);
   addPet('limpieza',-(S.own.raton?0:ACC.jugarEnsucia*(P==='jugueton'?.3:1)));addPet('energia',-6);addAv('animo',ACC.jugarAnimo);S.care.juego++;
   anim.play=performance.now();anim.excited=performance.now()+2200;burst(S.own.pelota?'ball':'yarn')}
 $('aPlay').onclick=()=>{if(S.terminado||ending)return;ac();
@@ -721,7 +744,7 @@ $('shopBtn').onclick=$('fruPill').onclick=()=>{ac();renderShop();show('shop',tru
 $('bagBtn').onclick=()=>{ac();renderBag();show('bag',true)};$('bagBack').onclick=()=>show('bag',false);
 
 /* ---------- interfaz ---------- */
-const PET_ROWS=[['hambre','🍗','Comida'],['felicidad','😺','Felicidad'],['salud','❤️','Salud'],['limpieza','🫧','Limpieza'],['energia','💤','Energía']];
+const PET_ROWS=[['hambre','🍗','Comida'],['felicidad','😺','Felicidad'],['salud','❤️','Salud'],['limpieza','🫧','Limpieza'],['energia','💤','Energía'],['afinidad','💞','Afinidad']];
 const AV_ROWS=[['hambre','🍓','Comida'],['higiene','🧼','Higiene'],['animo','🌈','Ánimo']];
 function buildStats(el,rows,pre){el.innerHTML=rows.map(([k,e,n])=>`<div class="stat"><span class="e">${e}</span><span class="n">${n}</span><span class="bar" id="${pre+k}B"><i></i></span><span class="v" id="${pre+k}V"></span></div>`).join('')}
 buildStats($('petStats'),PET_ROWS,'p_');buildStats($('avStats'),AV_ROWS,'a_');
@@ -754,13 +777,14 @@ function queueToast(t){if(!booted||document.hidden||overlayOpen()){toastQ.push(t
 function setTab(pet){$('tabPet').classList.toggle('sel',pet);$('tabAv').classList.toggle('sel',!pet);$('tabPet').setAttribute('aria-selected',pet);$('tabAv').setAttribute('aria-selected',!pet);show('panePet',pet);show('paneAv',!pet)}
 $('tabPet').onclick=()=>setTab(true);$('tabAv').onclick=()=>setTab(false);
 
-const WARN={p_hambre:'🍗 {n} tiene hambre',p_felicidad:'😿 {n} está aburrido: ¡juguemos!',p_limpieza:'🫧 {n} está sucio',p_salud:'🤒 ¡{n} se está enfermando!',p_energia:'😴 {n} está agotado: necesita dormir',
+const WARN={p_hambre:'🍗 {n} tiene hambre',p_felicidad:'😿 {n} está aburrido: ¡juguemos!',p_limpieza:'🫧 {n} está sucio',p_salud:'🤒 ¡{n} se está enfermando!',p_energia:'😴 {n} está agotado: necesita dormir',p_afinidad:'💔 {n} se siente solo: ¡mimalo y jugá con él!',
   a_hambre:'🍓 Tenés hambre',a_higiene:'🧼 Te vendría bien un baño',a_animo:'🌈 Estás bajón: jugá con el gatito'};
 const warned={};let nightWarned=false,cacaWarned=0;
 function checkWarn(){
   for(const id in WARN){const v=id[0]==='p'?S.pet[id.slice(2)]:S.avatar[id.slice(2)];
     if(v<LOW&&!warned[id]){warned[id]=1;queueToast(WARN[id].replace('{n}',nm()))}else if(v>=LOW+8)warned[id]=0}
   if(isNight()&&S.luz){if(!nightWarned){nightWarned=true;queueToast(`🌙 Ya es de noche: apagale la luz a ${nm()} para que duerma`)}}else nightWarned=false;
+  if(S.pet.afinidad<=8&&!S.terminado){if(!warned.afi8){warned.afi8=1;queueToast(`😿 ${nm()} está pensando en irse de casa… ¡dale cariño!`)}}else if(S.pet.afinidad>16)warned.afi8=0;
   if(S.cacas.length>cacaWarned&&S.cacas.length>=2)queueToast('💩 ¡Hay cacas en el patio! Tocalas para limpiar');cacaWarned=S.cacas.length;
   if(S.growPending&&!overlayOpen()&&!ending)showGrow();
 }
@@ -1156,7 +1180,9 @@ function draw(t,dt){
   if(S.porton&&S.tPorton>=um*.6&&!ending&&!asleep()){key='miedo';
     const k=Math.min(1,(S.tPorton-um*.6)/(um*.4));cx+=(g.gx+g.gw/2-g.cs/2-cx)*k*.55;cy-=(cy-(g.fy+g.fh-g.cs*.85))*k*.4}
   if(ending&&ending.tipo==='porton'){key='miedo';alpha=Math.max(0,1-ending.t*1.4);cy-=ending.t*30}
-  if(ending&&ending.tipo!=='porton')key='dormido1';
+  if(ending&&ending.tipo!=='porton'&&ending.tipo!=='abandono')key='dormido1';
+  if(ending&&ending.tipo==='abandono'){alpha=Math.max(0,1-ending.t*.7);cx+=ending.t*g.cs*.4}   // se va caminando
+  if(S.pet.afinidad<AFI.lejos&&!ending)cx+=g.cs*.16;            // con poca afinidad se queda más lejos de vos
   if(now-lastPet<260)sq=Math.sin((now-lastPet)/260*Math.PI)*.05;       // un saltito al mimarlo
   c.fillStyle='rgba(0,0,0,.14)';c.beginPath();c.ellipse(cx+g.cs/2,cy+g.cs*.97,g.cs*.36*(1-sq),g.cs*.06,0,0,7);c.fill();
   c.save();c.globalAlpha=alpha;
@@ -1169,7 +1195,7 @@ function draw(t,dt){
     if(S.wear&&ITEM[S.wear]&&alpha>0){const hd=CAT[key].head,hx=rr.x+rr.w*hd[0],hy=rr.y+rr.h*hd[1],fs=g.cs*.3,im=X('ropa_'+S.wear);
       c.globalAlpha=alpha;if(im)c.drawImage(im,hx-fs*.7+(S.wear==='flor'?g.cs*.14:0),hy-fs*1.05,fs*1.4,fs*1.4);
       else{c.fillStyle='#000';c.font=Math.round(fs)+'px serif';c.textAlign='center';c.textBaseline='bottom';c.fillText(ITEM[S.wear].em,hx+(S.wear==='flor'?g.cs*.14:0),hy+fs*.35);c.textAlign='start';c.textBaseline='alphabetic'}c.globalAlpha=1}
-    if(!ending&&!asleep()&&key!=='hambre')thought(rr.x+rr.w*.85,rr.y+4,p.salud<LOW?'🤒':p.hambre<LOW?'🍗':p.limpieza<LOW?'🫧':p.energia<LOW?'💤':p.felicidad<LOW?'🧶':S.cacas.length>=3?'💩':null,t);
+    if(!ending&&!asleep()&&key!=='hambre')thought(rr.x+rr.w*.85,rr.y+4,p.salud<LOW?'🤒':p.hambre<LOW?'🍗':p.limpieza<LOW?'🫧':p.energia<LOW?'💤':p.felicidad<LOW?'🧶':S.cacas.length>=3?'💩':S.pet.afinidad<AFI.lejos?'💔':null,t);
     catBox={x:rr.x,y:rr.y,w:rr.w,h:rr.h};catKey=key;
     // efectitos: zzz al dormir, chispas al festejar, gota de sudor del susto
     const hd=CAT[key].head;zT-=dt;spT-=dt;swT-=dt;
@@ -1199,15 +1225,20 @@ cv.addEventListener('pointerdown',e=>{
   if(x>catBox.x&&x<catBox.x+catBox.w&&y>catBox.y&&y<catBox.y+catBox.h){
     const n=performance.now();if(n-lastPet<700)return;lastPet=n;
     if(isNight()&&!S.luz){if(n-shhT>4000){shhT=n;toast(`🤫 Shh… ${nm()} está durmiendo`)}return}
-    act(()=>{addPet('felicidad',ACC.mimo*(S.pers==='mimoso'?2:1));S.care.mimo++;anim.excited=n+1200;hearts(4);sPurr();sMeow(.25)});
+    const af=S.pet.afinidad;
+    act(()=>{
+      if(af<AFI.lejos&&Math.random()<.4){anim.angry=n+1500;S.cares--;toast(`😾 ${nm()} no quiere mimos ahora… pasá más tiempo con él`);return}   // lo rechaza
+      addPet('felicidad',ACC.mimo*(S.pers==='mimoso'?2:1)*(af<AFI.pocas?.5:1));S.care.mimo++;S.idle=0;
+      if(n-lastAfiMimo>45000){lastAfiMimo=n;addAfi(1.5)}                // los mimos suben la afinidad, pero no se puede "farmear"
+      anim.excited=n+1200;hearts(4);sPurr();sMeow(.25)});
   }
 });
 let faceShown='';
 function miniCats(){ // la carita de la pestaña muestra cómo se siente
-  const p=S.pet,now=performance.now();let f='feliz';
+  const p=S.pet,now=performance.now();let f=p.afinidad>=AFI.cerca?'amor':'feliz';   // con mucha afinidad, carita de amor
   if(S.terminado)f='triste';else if(now<anim.angry)f='enojo';else if(asleep())f='sueno';
   else if(p.salud<LOW||(S.porton&&S.tPorton>=umbral()*.6))f='sorpresa';
-  else if(['hambre','felicidad','limpieza','energia'].some(k=>p[k]<LOW))f='triste';
+  else if(['hambre','felicidad','limpieza','energia'].some(k=>p[k]<LOW)||p.afinidad<AFI.lejos)f='triste';
   else if(now<anim.excited)f='amor';
   const src=catSrc('cara_'+f,isBlack());if(src!==faceShown){faceShown=src;$('tabCat').src=src}
 }
@@ -1239,16 +1270,16 @@ function mgEnd(){
   const k=MG.kind,sc=MG.score,rec=sc>(S.best[k]||0);if(rec)S.best[k]=sc;
   if(MG.work){   // turno de trabajo: plata, cansancio, el gatito te extraña y el portón queda abierto
     const pay=sc>0?Math.round(2+sc*1.1):0;
-    act(()=>{S.fru+=pay;addAv('hambre',-WORK.hambre);addAv('higiene',-WORK.higiene);addAv('animo',-WORK.animo);addPet('felicidad',-WORK.extrana);
+    act(()=>{S.fru+=pay;addAv('hambre',-WORK.hambre);addAv('higiene',-WORK.higiene);addAv('animo',-WORK.animo);addPet('felicidad',-WORK.extrana);addAfi(-WORK.afinidad);
       S.porton=true;S.tPorton=0;S.cares--;sGate(true)});
     $('mgResT').textContent=sc===0?'Hoy no hubo suerte…':sc<10?'Turno terminado':'¡Gran turno! 💪';$('mgResN').textContent=sc;
     $('mgResChips').innerHTML=(rec&&sc>0?'<span class="chip sun">🏆 ¡Récord!</span>':'')+(pay?`<span class="chip">🍓 +${pay}</span>`:'')+
-      `<span class="chip">😮‍💨 −${WORK.hambre} hambre, −${WORK.higiene} higiene, −${WORK.animo} ánimo</span><span class="chip">😿 ${esc(nm())} te extrañó (−${WORK.extrana})</span><span class="chip sun">🚪 ¡Cerrá el portón!</span>`;
+      `<span class="chip">😮‍💨 −${WORK.hambre} hambre, −${WORK.higiene} higiene, −${WORK.animo} ánimo</span><span class="chip">😿 ${esc(nm())} te extrañó (−${WORK.extrana} felicidad, −${WORK.afinidad} 💞)</span><span class="chip sun">🚪 ¡Cerrá el portón!</span>`;
     show('mgRes',true);sYay();return}
   const vo=k==='voley',fel=vo?Math.min(45,10+sc*1.5):Math.min(45,8+sc*(k==='cajas'?3:2)),fru=Math.floor(sc/(k==='cajas'?2:vo?3:4))*(S.pers==='jugueton'?1.5:1)|0,an=ACC.jugarAnimo+(vo?12:0);
-  act(()=>{playEffects(fel);S.fru+=fru;if(vo)addAv('animo',12)});
+  act(()=>{playEffects(fel);S.fru+=fru;if(vo){addAv('animo',12);if(sc>0)addAfi(5)}});
   $('mgResT').textContent=sc===0?'¡Uy! La próxima sale':sc<6?'¡Bien jugado!':'¡Genial! 🎉';$('mgResN').textContent=sc;
-  $('mgResChips').innerHTML=(rec&&sc>0?'<span class="chip sun">🏆 ¡Récord!</span>':'')+`<span class="chip">😺 +${Math.round(fel*(S.pers==='jugueton'?1.5:1)+(S.own.pelota?8:0))} felicidad</span>`+(fru?`<span class="chip">🍓 +${fru}</span>`:'')+`<span class="chip">🌈 +${an} ánimo</span>`;
+  $('mgResChips').innerHTML=(rec&&sc>0?'<span class="chip sun">🏆 ¡Récord!</span>':'')+`<span class="chip">😺 +${Math.round(fel*(S.pers==='jugueton'?1.5:1)*afiFel()+(S.own.pelota?8:0))} felicidad</span>`+(fru?`<span class="chip">🍓 +${fru}</span>`:'')+`<span class="chip">🌈 +${an} ánimo</span>`;
   show('mgRes',true);sYay();sMeow(.3);
 }
 $('mgQuit').onclick=()=>{if(!MG)return;if(MG.t<0||MG.over){MG=null;show('mg',false);return}mgEnd()};
@@ -1440,7 +1471,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){napping=fa
 addEventListener('pagehide',()=>{catchUp();persist()});
 if(document.readyState==='complete')boot();else addEventListener('load',boot);
 
-if(location.hash==='#prueba')window.CC={get S(){return S},get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,goWork,workBlock,mgEnd,geo,STAGES,
+if(location.hash==='#prueba')window.CC={get S(){return S},get MG(){return MG},get ending(){return ending},step,catchUp,endGame,render,isNight,startMG,goWork,workBlock,mgEnd,geo,STAGES,AFI,addAfi,umbral,
   age(days){const n=Math.round(days*86400/ageF());for(let i=0;i<n&&!S.terminado;i++){S.last+=1000;step(1)}S.last=Date.now();render()}};
 if(window.PWA&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 })();

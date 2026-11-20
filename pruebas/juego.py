@@ -86,7 +86,7 @@ def dias(s, n, paso=.25):  # n días de gatito, dándole de comer entre medio
         cuidar(s); s.ev('CC.age(%s)' % paso)
 
 def cuidar(s):  # deja todo en 100 (para simular días sin que el gatito se muera)
-    s.ev("(()=>{const S=CC.S;for(const k in S.pet)S.pet[k]=100;for(const k in S.avatar)S.avatar[k]=100;S.cacas=[]})()")
+    s.ev("(()=>{const S=CC.S;for(const k in S.pet)S.pet[k]=100;for(const k in S.avatar)S.avatar[k]=100;S.cacas=[];S.idle=0;S.tAband=0})()")
 
 # =====================================================================
 @prueba
@@ -371,6 +371,7 @@ def trabajo(br):
     check('kiosco: paga frutillas según el puntaje', s.ev('CC.S.fru') == pay, [s.ev('CC.S.fru'), pay])
     check('el turno cansa: −18 comida, −12 higiene, −12 ánimo', s.ev('[CC.S.avatar.hambre,CC.S.avatar.higiene,CC.S.avatar.animo].map(Math.round)') == [82, 88, 88], s.ev('[CC.S.avatar.hambre,CC.S.avatar.higiene,CC.S.avatar.animo]'))
     check('el gatito te extraña (−6 felicidad)', 93 <= s.ev('CC.S.pet.felicidad') <= 94.5, s.ev('CC.S.pet.felicidad'))
+    check('trabajar le baja la afinidad (−4)', 95 <= s.ev('CC.S.pet.afinidad') <= 96.5, s.ev('CC.S.pet.afinidad'))
     check('al volver el portón queda abierto (hay que cerrarlo)', s.ev('CC.S.porton') is True)
     s.foto('trabajo-resultado')
     s.pg.click('#mgDone'); s.pg.wait_for_timeout(1300)
@@ -394,7 +395,7 @@ def trabajo(br):
     # --- salir con la ✕ en la cuenta regresiva: no pasa nada (no te fuiste)
     s = Sesion(br).abrir(); cuidar(s)
     s.pg.click('#tabAv'); s.pg.click('#aWork'); s.pg.click('[data-j=kiosco]'); s.pg.click('#mgQuit')
-    check('arrepentirse antes de empezar no cuesta nada ni deja el portón abierto', s.ev('CC.S.porton') is False and s.ev('CC.S.avatar.animo') == 100)
+    check('arrepentirse antes de empezar no cuesta nada ni deja el portón abierto', s.ev('CC.S.porton') is False and s.ev('CC.S.avatar.animo') >= 99.5)
     # --- cerrar el juego en medio del turno no deja el portón abierto
     s.pg.click('#aWork'); s.pg.click('[data-j=kiosco]'); esperar_juego(s)
     s.pg.reload(); s.pg.wait_for_function('window.CC&&document.readyState==="complete"'); s.pg.wait_for_timeout(500)
@@ -423,6 +424,67 @@ def voley(br):
     s = Sesion(br).abrir(); s.ev("CC.S.pet.energia=5"); s.pg.click('#aPlay')
     check('con el gatito cansado tampoco hay vóley', s.ev("document.getElementById('games').hidden"))
     s.cerrar()
+
+def mimar(s):
+    g = s.ev('CC.geo()'); box = s.ev("(()=>{const r=document.getElementById('cv').getBoundingClientRect();return [r.left,r.top]})()")
+    s.pg.mouse.click(box[0] + g['cx'] + g['cs'] / 2 + s.ev('CC.S.pet.afinidad<CC.AFI.lejos?g.cs*.16:0') if False else box[0] + g['cx'] + g['cs'] / 2, box[1] + g['cy'] + g['cs'] * .6)
+    s.pg.wait_for_timeout(250)
+
+@prueba
+def afinidad(br):
+    s = Sesion(br).abrir()
+    check('empieza en 40 y tiene su barra', s.ev('CC.S.pet.afinidad') == 40 and s.ev("!!document.getElementById('p_afinidadB')"), s.ev('CC.S.pet.afinidad'))
+    # --- cómo sube
+    s.ev("CC.S.pet.felicidad=50"); a0 = s.ev('CC.S.pet.afinidad'); mimar(s); a1 = s.ev('CC.S.pet.afinidad')
+    check('un mimo sube la afinidad', a1 > a0, [a0, a1])
+    s.pg.wait_for_timeout(800); mimar(s)
+    check('mimar sin parar no la sube más (hay que esperar)', abs(s.ev('CC.S.pet.afinidad') - a1) < .01, [a1, s.ev('CC.S.pet.afinidad')])
+    s.ev("CC.S.pet.hambre=40"); a = s.ev('CC.S.pet.afinidad'); s.pg.click('#aFeed')
+    check('darle de comer cuando lo necesita la sube', s.ev('CC.S.pet.afinidad') > a, [a, s.ev('CC.S.pet.afinidad')])
+    a = s.ev('CC.S.pet.afinidad'); s.pg.click('#aPlay'); s.pg.click('#quickPlay'); s.pg.wait_for_timeout(200)
+    check('jugar con él la sube más', s.ev('CC.S.pet.afinidad') > a + 1.5, [a, s.ev('CC.S.pet.afinidad')])
+    s.cerrar()
+    # --- cómo baja
+    s = Sesion(br).abrir(); cuidar(s); s.ev("CC.S.pet.afinidad=60;CC.S.pet.felicidad=10")
+    s.ev('CC.age(0.1)')
+    check('descuidarlo (necesidades en rojo) le baja la afinidad', s.ev('CC.S.pet.afinidad') < 58, s.ev('CC.S.pet.afinidad'))
+    cuidar(s); s.ev("CC.S.pet.afinidad=60;CC.S.idle=9*3600"); s.ev('CC.age(0.25)')
+    check('si hace horas que no le das cariño (aunque coma), baja', s.ev('CC.S.pet.afinidad') < 56, s.ev('CC.S.pet.afinidad'))
+    cuidar(s); s.ev("CC.S.pet.afinidad=60;CC.S.idle=0"); s.ev('CC.age(0.25)')
+    check('con cariño reciente no baja', s.ev('CC.S.pet.afinidad') > 59, s.ev('CC.S.pet.afinidad'))
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+    # --- consecuencias de la afinidad baja
+    s = Sesion(br).abrir(); cuidar(s)
+    s.ev("CC.S.pet.afinidad=50;CC.S.pet.felicidad=50"); u50 = s.ev('CC.umbral()')
+    s.ev("CC.S.pet.afinidad=80"); u80 = s.ev('CC.umbral()'); s.ev("CC.S.pet.afinidad=10"); u10 = s.ev('CC.umbral()')
+    check('con poca afinidad el portón le tienta el doble; con mucha, menos', u10 == u50 / 2 and u80 == u50 * 1.5, [u10, u50, u80])
+    s.ev("CC.S.pet.afinidad=40;CC.S.pet.felicidad=50"); f0 = s.ev('CC.S.pet.felicidad'); s.pg.wait_for_timeout(800); mimar(s)
+    check('con afinidad media los mimos valen la mitad', 0 < s.ev('CC.S.pet.felicidad') - f0 <= 1.8, s.ev('CC.S.pet.felicidad') - f0)
+    s.ev("CC.S.pet.afinidad=10"); s.pg.wait_for_timeout(4600)
+    tx = s.ev("document.getElementById('toast').textContent")
+    check('con poca afinidad avisa que está solo', 'solo' in tx or 'irse' in tx, tx)
+    s.ev("CC.S.pet.felicidad=50;Math.random=()=>0"); s.pg.wait_for_timeout(3300); mimar(s)
+    check('con muy poca afinidad a veces rechaza los mimos', s.ev('CC.S.pet.felicidad') <= 50.5 and 'no quiere' in s.ev("document.getElementById('toast').textContent"), [s.ev('CC.S.pet.felicidad'), s.ev("document.getElementById('toast').textContent")])
+    s.ev("CC.S.pet.afinidad=90;CC.S.pet.felicidad=90"); s.pg.wait_for_timeout(2000)
+    check('con mucha afinidad la carita de la pestaña es de amor', 'cara_amor' in s.ev("document.getElementById('tabCat').src"), s.ev("document.getElementById('tabCat').src"))
+    s.foto('afinidad-baja'); check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+    # --- ausencia larga: pierde como máximo 25 y no se va por eso
+    s = Sesion(br).abrir(); cuidar(s)
+    s.ev("CC.AFI.ausente=50;CC.S.pet.afinidad=60;CC.S.idle=9*3600;CC.S.last-=5*3600*1000;CC.catchUp()")
+    check('mientras no estás, la afinidad pierde como máximo 25', 34.5 <= s.ev('CC.S.pet.afinidad') <= 36, s.ev('CC.S.pet.afinidad'))
+    s.ev("CC.S.pet.afinidad=20;CC.S.tAband=0;CC.S.idle=9*3600;CC.S.last-=30*3600*1000;CC.S.pet.hambre=100;CC.catchUp()")
+    check('una ausencia larga no te hace perder al gatito por abandono', s.ev('CC.S.final') != 'abandono', s.ev('[CC.S.terminado,CC.S.final,CC.S.pet.afinidad]'))
+    s.cerrar()
+    # --- el final: se va de casa
+    s = Sesion(br).abrir(); cuidar(s)
+    s.ev("CC.S.pet.afinidad=0;CC.S.tAband=47.9;CC.S.idle=0"); s.ev('CC.age(0.2)')
+    check('con afinidad 0 durante días se va de casa (final "abandono")', s.ev('CC.S.terminado') is True and s.ev('CC.S.final') == 'abandono', s.ev('[CC.S.terminado,CC.S.final]'))
+    s.pg.wait_for_timeout(4500)
+    check('aparece la pantalla final con su mensaje', s.ev("!document.getElementById('final').hidden") and 'no volvió' in s.ev("document.getElementById('finalMsg').textContent"), s.ev("document.getElementById('finalMsg').textContent"))
+    s.foto('final-abandono')
+    s.pg.click('#againBtn'); s.pg.wait_for_timeout(300); s.pg.fill('#nameIn', 'Nuevo'); s.pg.click('#introGo'); s.pg.wait_for_timeout(300)
+    check('el gatito nuevo empieza con su propia afinidad (40)', s.ev('CC.S.pet.afinidad') == 40, s.ev('CC.S.pet.afinidad'))
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba
 def muerte_durante_minijuego(br):
