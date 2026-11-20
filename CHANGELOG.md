@@ -1,5 +1,8 @@
 # Cambios
 
+## 1.3.2
+- Arreglo: pantalla en blanco al abrir una partida guardada con una versión anterior (faltaba la afinidad). Ahora las partidas viejas reciben los valores nuevos por defecto.
+
 ## 1.3.1 — Dibujos de Sofía opcionales y detalles
 - **Ajustes → Dibujos del gatito:** se puede elegir entre los dibujos de Sofía (activados por defecto) y los provisorios. La elección se guarda y no cambia al empezar con otro gatito. Los dibujos de Sofía se usan pose por pose: las que todavía no dibujó siguen con el provisorio.
 - Los dibujos de Sofía ahora viven en `assets/gato_sofia/` y los provisorios quedaron intactos en `assets/gato/`. `tools/procesar_arte.py` escribe en `assets/gato_sofia/`.

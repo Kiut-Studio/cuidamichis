@@ -490,7 +490,7 @@ const fresh=()=>Object.assign({v:1,
   last:Date.now(),char:null,mode:'real',music:true,sfx:true,arteSofia:true,
   fru:10,inv:{},own:{},wear:'',streak:0,recuerdos:[],tutDone:false,best:{}},freshPet());
 let S=fresh();
-try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===1){const f=fresh();S=Object.assign(f,s);S.avatar=Object.assign(f.avatar,s.avatar);S.pet=Object.assign(f.pet,s.pet);S.care=Object.assign(f.care,s.care||{})}}catch(e){}
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===1){const f=fresh(),dA=f.avatar,dP=f.pet,dC=f.care;S=Object.assign(f,s);S.avatar=Object.assign(dA,s.avatar);S.pet=Object.assign(dP,s.pet);S.care=Object.assign(dC,s.care||{})}}catch(e){}
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 function newPet(){const keep={};['v','secretos','flagPersonalizacion','char','mode','music','sfx','arteSofia','fru','inv','own','wear','streak','recuerdos','tutDone','best'].forEach(k=>keep[k]=S[k]);
   S=Object.assign(fresh(),keep,freshPet(),{last:Date.now()})}

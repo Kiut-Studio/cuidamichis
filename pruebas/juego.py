@@ -533,6 +533,17 @@ def dibujos_de_sofia_y_detalles(br):
     check('sin errores', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba
+def partida_vieja(br):
+    """Una partida guardada con una versión anterior (sin afinidad, sin ajustes nuevos) tiene que abrir bien."""
+    s = Sesion(br).abrir(); cuidar(s)
+    editar_guardado(s, "delete x.pet.afinidad;delete x.idle;delete x.tAband;delete x.arteSofia;x.last-=2*3600*1000")
+    check('una partida de antes de la afinidad abre sin errores', not s.errs, str(s.errs))
+    check('recibe la afinidad por defecto', s.ev('typeof CC.S.pet.afinidad') == 'number' and s.ev('CC.S.pet.afinidad') <= 40, s.ev('CC.S.pet.afinidad'))
+    check('y los dibujos de Sofía activados', s.ev('CC.S.arteSofia') is True)
+    check('se ve el juego (no queda en blanco)', s.ev("document.getElementById('panePet').offsetHeight") > 100 and s.ev("document.getElementById('p_afinidadB')!==null"))
+    s.pg.wait_for_timeout(1500); check('sigue sin errores un rato después', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
 def muerte_durante_minijuego(br):
     s = Sesion(br).abrir(); s.ev("CC.S.pet.felicidad=40")
     s.pg.click('#aPlay'); s.pg.click('[data-g=lana]'); esperar_juego(s)
