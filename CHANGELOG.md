@@ -1,5 +1,8 @@
 # Cambios
 
+## 1.5.2
+- Arreglo: en celulares parados el panel de abajo (barras y botones) hacía scroll desde que se sumaron la afinidad y los logros. Ahora el patio cede el lugar que haga falta y el panel mide lo mismo en las dos pestañas. Prueba nueva con 7 tamaños de pantalla.
+
 ## 1.5.1
 - Pantalla de novedades (📣): se abre sola una vez por versión nueva a quien ya jugaba, y siempre se puede ver desde Ajustes. La lista está en `NEWS` dentro de `index.html` y tiene que coincidir con este archivo (hay una prueba que lo comprueba).
 - Arreglo: la pantalla de cumpleaños quedaba tapada por Ajustes.

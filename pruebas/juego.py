@@ -697,6 +697,22 @@ def novedades(br):
     check('sin errores', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba
+def sin_scroll_en_celular(br):
+    """En celulares parados el panel de abajo entra entero (sin mini scroll) en las dos pestañas."""
+    s = Sesion(br).abrir(); cuidar(s)
+    for w, h in [(360, 640), (375, 667), (360, 700), (360, 740), (390, 780), (390, 844), (412, 915)]:
+        s.pg.set_viewport_size({'width': w, 'height': h}); s.pg.wait_for_timeout(400)
+        for tab, pane in [('tabPet', 'panePet'), ('tabAv', 'paneAv')]:
+            s.ev(f"document.getElementById('{tab}').click()"); s.pg.wait_for_timeout(150)
+            sh, ch = s.ev(f"[document.getElementById('{pane}').scrollHeight,document.getElementById('{pane}').clientHeight]")
+            check(f'{w}x{h} {pane}: entra sin scroll', sh <= ch + 1, f'{sh} > {ch}')
+        pagina = s.ev("document.scrollingElement.scrollHeight-innerHeight")
+        check(f'{w}x{h}: la página tampoco se mueve', pagina <= 1, pagina)
+        check(f'{w}x{h}: el patio mide al menos 200', s.ev("document.getElementById('scene').offsetHeight") >= 200)
+    s.ev("document.getElementById('tabPet').click()"); s.pg.set_viewport_size({'width': 390, 'height': 780}); s.pg.wait_for_timeout(300); s.foto('celular-390x780')
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
 def muerte_durante_minijuego(br):
     s = Sesion(br).abrir(); s.ev("CC.S.pet.felicidad=40")
     s.pg.click('#aPlay'); s.pg.click('[data-g=lana]'); esperar_juego(s)
