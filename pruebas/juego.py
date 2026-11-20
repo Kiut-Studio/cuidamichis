@@ -601,6 +601,15 @@ def fiestas_y_cumpleanos(br):
     """Cumpleaños de Leandro (25/11), fiestas del año, decoración y regalo una sola vez."""
     s = Sesion(br).abrir(); cuidar(s)
     check('Leandro ya viene en la lista de cumpleaños', s.ev("CC.S.cumples.some(q=>q.n==='Leandro'&&q.d===25&&q.m===11)"))
+    for n, d, m in [('Cinthia', 10, 10), ('Nora', 5, 10), ('Sofi', 4, 8), ('Deisy', 25, 7)]:
+        check(f'{n} viene en la lista ({d}/{m})', s.ev(f"CC.S.cumples.some(q=>q.n==='{n}'&&q.d=={d}&&q.m=={m})"))
+        s.ev(f'CC.hoy({m},{d})'); check(f'el {d}/{m} se festeja a {n}', any(n in x['n'] for x in s.ev('CC.eventosHoy()')))
+    s.ev('CC.hoy(0,0)')
+    # una partida de antes (solo con Leandro) recibe los demás, una sola vez
+    editar_guardado(s, "x.cumples=[{n:'Leandro',d:25,m:11}];delete x.cumplesBase")
+    check('una partida vieja recibe los cumpleaños de la familia', s.ev('CC.S.cumples.length') == 5, s.ev('CC.S.cumples'))
+    editar_guardado(s, "x.cumples=x.cumples.filter(q=>q.n!=='Deisy')")
+    check('si se borra uno, no vuelve', s.ev("!CC.S.cumples.some(q=>q.n==='Deisy')"))
     f0 = s.ev('CC.S.fru'); s.ev('CC.hoy(11,25)'); s.pg.wait_for_timeout(300)
     check('el 25/11 hay fiesta', any('Leandro' in x['n'] for x in s.ev('CC.eventosHoy()')))
     check('regalo de 25 frutillas', s.ev('CC.S.fru') == f0 + 25, s.ev('CC.S.fru'))

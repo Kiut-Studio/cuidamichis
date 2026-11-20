@@ -6,7 +6,7 @@
 
 ## 1.5.0
 - **Clima real y estaciones**: el patio sigue el clima de Villarrica (Open-Meteo, sin clave), o el de donde estés, o se apaga en Ajustes. Lluvia, llovizna, tormenta (rayos que asustan al gatito), niebla, nubes y nieve. Con lluvia se ensucia más; con 34° o más se cansa antes. Estación del año por la fecha de verdad (hemisferio sur): hojas en otoño, pétalos en primavera, tinte frío en invierno.
-- **Fiestas y cumpleaños**: cumpleaños de Leandro el 25/11 (y los que agregues en Ajustes → Cumpleaños y fiestas), Navidad, Año Nuevo, Halloween y Día del Niño. Decoración, confeti, sombrerito para los cumpleaños y regalo de frutillas una sola vez por año.
+- **Fiestas y cumpleaños**: cumpleaños de toda la familia (Deisy 25/7, Sofi 4/8, Nora 5/10, Cinthia 10/10 y Leandro 25/11) y los que agregues en Ajustes → Cumpleaños y fiestas, Navidad, Año Nuevo, Halloween y Día del Niño. Decoración, confeti, sombrerito para los cumpleaños y regalo de frutillas una sola vez por año.
 - **Logros y álbum**: 25 logros (algunos secretos) y un álbum de hasta 16 fotos que se sacan solas en momentos especiales (crecer, fiestas, logros grandes) o a mano. Las fotos se guardan aparte de la partida.
 - **Avisos**: opción en Ajustes para recibir notificaciones cuando el gatito necesita algo (con el juego abierto en segundo plano; si se cierra del todo depende de Android).
 - Arreglo: un guardado con números rotos (null) se repara solo al cargar.

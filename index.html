@@ -562,14 +562,17 @@ const freshPet=()=>({
   porton:false,tPorton:0,luz:true,cacas:[],cacaT:2,
   idle:0,tAband:0,edad:0,stage:0,pers:'',care:{comida:0,juego:0,mimo:0,banio:0},bad:0,good:0,
   terminado:false,final:'',born:Date.now(),diedAt:0,cares:0,growPending:false,lastDay:0,name:''});
+const CUMPLES_BASE=[{n:'Leandro',d:25,m:11},{n:'Cinthia',d:10,m:10},{n:'Nora',d:5,m:10},{n:'Sofi',d:4,m:8},{n:'Deisy',d:25,m:7}];   // los cumpleaños de la familia
 const fresh=()=>Object.assign({v:1,
   secretos:{camara_desbloqueada:false},     // reservado para el secreto de la cámara (todavía sin hacer)
   flagPersonalizacion:false,                // personalización de la mascota: apagada por ahora
   last:Date.now(),char:null,mode:'real',music:true,sfx:true,arteSofia:true,
   fru:10,inv:{},own:{},wear:'',streak:0,recuerdos:[],tutDone:false,best:{},
-  seenVersion:'',logros:{},tot:{},clima:'vill',gps:null,avisos:false,eventos:{},cumples:[{n:'Leandro',d:25,m:11}]},freshPet());
+  seenVersion:'',logros:{},tot:{},clima:'vill',gps:null,avisos:false,eventos:{},cumples:CUMPLES_BASE.map(q=>({...q})),cumplesBase:true},freshPet());
 let S=fresh();
-try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===1){const f=fresh(),dA=f.avatar,dP=f.pet,dC=f.care;S=Object.assign(f,s);S.avatar=Object.assign(dA,s.avatar);S.pet=Object.assign(dP,s.pet);S.care=Object.assign(dC,s.care||{});for(const [o,d] of [[S.pet,freshPet().pet],[S.avatar,fresh().avatar]])for(const k in d)if(typeof d[k]==='number'&&!Number.isFinite(o[k]))o[k]=d[k]}}catch(e){}   /* un número roto (null/NaN) en un guardado se cambia por el valor por defecto */
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===1){const f=fresh(),dA=f.avatar,dP=f.pet,dC=f.care;S=Object.assign(f,s);S.avatar=Object.assign(dA,s.avatar);S.pet=Object.assign(dP,s.pet);S.care=Object.assign(dC,s.care||{});for(const [o,d] of [[S.pet,freshPet().pet],[S.avatar,fresh().avatar]])for(const k in d)if(typeof d[k]==='number'&&!Number.isFinite(o[k]))o[k]=d[k]
+    if(!s.cumplesBase){const tiene=new Set((S.cumples||[]).map(q=>q.n));S.cumples=S.cumples||[];for(const q of CUMPLES_BASE)if(!tiene.has(q.n))S.cumples.push({...q});S.cumplesBase=true}   // partidas de antes: se suman los cumpleaños de la familia (una sola vez, así se pueden borrar)
+  }}catch(e){}   /* un número roto (null/NaN) en un guardado se cambia por el valor por defecto */
 const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
 /* ---------- calendario, clima real, logros, álbum y avisos ---------- */
@@ -658,7 +661,7 @@ async function programarAvisos(){   // al salir: se anota cuándo le va a hacer 
     for(const [k,txt] of [['hambre','🍗 {n} tiene hambre'],['felicidad','😿 {n} está aburrido: ¡juguemos!'],['limpieza','🫧 {n} está sucio']]){const t=(p[k]-LOW)/(DECAY_PET[k]*m*.7);if(t<sec){sec=Math.max(60,t);que=txt}}
     const c=await caches.open('cc-aviso');await c.put('cc-aviso.json',new Response(JSON.stringify({due:Date.now()+sec*1000,txt:que.replace('{n}',nm())})));
     if(r.periodicSync){const st=await navigator.permissions.query({name:'periodic-background-sync'});if(st.state==='granted')await r.periodicSync.register('cc-aviso',{minInterval:3600e3})}}catch(e){}}
-function newPet(){const keep={};['v','secretos','flagPersonalizacion','char','mode','music','sfx','arteSofia','fru','inv','own','wear','streak','recuerdos','tutDone','best','logros','tot','clima','gps','avisos','eventos','cumples','seenVersion'].forEach(k=>keep[k]=S[k]);
+function newPet(){const keep={};['v','secretos','flagPersonalizacion','char','mode','music','sfx','arteSofia','fru','inv','own','wear','streak','recuerdos','tutDone','best','logros','tot','clima','gps','avisos','eventos','cumples','cumplesBase','seenVersion'].forEach(k=>keep[k]=S[k]);
   S=Object.assign(fresh(),keep,freshPet(),{last:Date.now()})}
 
 const CHARS=[{id:'sofi',name:'Sofi'},{id:'deisy',name:'Deisy'},{id:'leandro',name:'Leandro'},{id:'nora',name:'Nora'},{id:'cinthia',name:'Cinthia'}];
@@ -1747,7 +1750,7 @@ const NEWS=[
   {v:'1.5.0',fecha:'noviembre 2026',titulo:'Clima, fiestas, logros y avisos',items:[
     ['🌧️','Clima real: el patio sigue el tiempo de Villarrica (o de donde estés). Con lluvia el gatito se ensucia más y con mucho calor se cansa antes. En ⚙️ se puede cambiar o apagar.'],
     ['🍂','Estaciones: hojas que caen en otoño, pétalos en primavera.'],
-    ['🎂','Fiestas: el 25/11 es el cumple de Leandro, y también hay Navidad, Año Nuevo, Halloween y Día del Niño, con decoración y regalo de 🍓. Agregá otros cumpleaños en ⚙️.'],
+    ['🎂','Fiestas: los cumples de la familia (Deisy 25/7, Sofi 4/8, Nora 5/10, Cinthia 10/10 y Leandro 25/11), y también hay Navidad, Año Nuevo, Halloween y Día del Niño, con decoración y regalo de 🍓. Agregá otros cumpleaños en ⚙️.'],
     ['🏆','25 logros (algunos secretos) y un álbum de hasta 16 fotos que se sacan solas en los momentos especiales.'],
     ['🔔','Avisos: podés pedir que te avise cuando el gatito necesite algo.']]},
   {v:'1.4.0',fecha:'noviembre 2026',titulo:'Siesta y más efectos',items:[
