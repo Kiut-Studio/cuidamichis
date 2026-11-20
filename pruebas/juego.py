@@ -53,6 +53,7 @@ class Sesion:
         s.ctx = br.new_context(viewport={'width': vp[0], 'height': vp[1]}, device_scale_factor=2 if movil else 1,
                                is_mobile=movil, has_touch=movil, timezone_id='America/Asuncion', locale='es-PY')
         if reloj: s.ctx.add_init_script(RELOJ)
+        s.ctx.route('**/api.open-meteo.com/**', lambda r: r.fulfill(json={'current': {'weather_code': 0, 'temperature_2m': 24.0, 'wind_speed_10m': 5.0}}))   # el clima de mentira: sol y 24°
         s.pg = s.ctx.new_page(); s.errs = []; s.malas = []
         s.pg.on('console', lambda m: s.errs.append(m.text) if m.type == 'error' else None)
         s.pg.on('pageerror', lambda e: s.errs.append('PAGEERROR ' + str(e)))
@@ -433,6 +434,7 @@ def mimar(s):
 @prueba
 def afinidad(br):
     s = Sesion(br).abrir()
+    s.ev("for(const l of CC.LOGROS)CC.S.logros[l.id]=1")   # sin avisos de logros que se metan en los carteles
     check('empieza en 40 y tiene su barra', s.ev('CC.S.pet.afinidad') == 40 and s.ev("!!document.getElementById('p_afinidadB')"), s.ev('CC.S.pet.afinidad'))
     # --- cómo sube
     s.ev("CC.S.pet.felicidad=50"); a0 = s.ev('CC.S.pet.afinidad'); mimar(s); a1 = s.ev('CC.S.pet.afinidad')
@@ -454,7 +456,7 @@ def afinidad(br):
     check('con cariño reciente no baja', s.ev('CC.S.pet.afinidad') > 59, s.ev('CC.S.pet.afinidad'))
     check('sin errores', not s.errs, str(s.errs)); s.cerrar()
     # --- consecuencias de la afinidad baja
-    s = Sesion(br).abrir(); cuidar(s)
+    s = Sesion(br).abrir(); cuidar(s); s.ev("for(const l of CC.LOGROS)CC.S.logros[l.id]=1")
     s.ev("CC.S.pet.afinidad=50;CC.S.pet.felicidad=50"); u50 = s.ev('CC.umbral()')
     s.ev("CC.S.pet.afinidad=80"); u80 = s.ev('CC.umbral()'); s.ev("CC.S.pet.afinidad=10"); u10 = s.ev('CC.umbral()')
     check('con poca afinidad el portón le tienta el doble; con mucha, menos', u10 == u50 / 2 and u80 == u50 * 1.5, [u10, u50, u80])
@@ -568,6 +570,97 @@ def energia_y_siesta(br):
     check('tocar la escena no da errores', not s.errs, str(s.errs)); s.cerrar()
 
 @prueba
+def clima_y_estaciones(br):
+    """Clima real (acá simulado), estaciones del hemisferio sur y sus efectos."""
+    s = Sesion(br).abrir(); cuidar(s)
+    s.pg.wait_for_function('CC.WX.real', timeout=5000)
+    check('baja el clima de Villarrica (simulado: sol, 24°)', s.ev('CC.WX.kind') == 'sol' and s.ev('CC.WX.temp') == 24 and s.ev('CC.WX.lugar') == 'Villarrica')
+    for m, d, est in [(12, 25, 'verano'), (3, 10, 'verano'), (4, 10, 'otono'), (7, 1, 'invierno'), (10, 1, 'primavera')]:
+        s.ev(f'CC.hoy({m},{d})'); check(f'{d}/{m} es {est} (hemisferio sur)', s.ev('CC.estacion()') == est, s.ev('CC.estacion()'))
+    s.ev('CC.hoy(0,0)')
+    for code, kind in [(0, 'sol'), (3, 'nubes'), (45, 'niebla'), (53, 'llovizna'), (63, 'lluvia'), (81, 'lluvia'), (73, 'nieve'), (95, 'tormenta')]:
+        s.ev(f'CC.setWx({code},20)'); check(f'código {code} → {kind}', s.ev('CC.WX.kind') == kind, s.ev('CC.WX.kind'))
+    s.ev('CC.setWx(0,24)'); s.ev("CC.S.pet.limpieza=100;CC.S.cacas=[]"); s.ev('CC.step(60)'); d_sol = 100 - s.ev('CC.S.pet.limpieza')
+    s.ev('CC.setWx(63,20)'); s.ev("CC.S.pet.limpieza=100;CC.S.cacas=[]"); s.ev('CC.step(60)'); d_ll = 100 - s.ev('CC.S.pet.limpieza')
+    check('con lluvia se ensucia más (x1,5)', d_sol > 0 and 1.35 < d_ll / d_sol < 1.65, f'{d_sol} vs {d_ll}')
+    s.pg.wait_for_timeout(1300); check('el cartel del día muestra la lluvia', '🌧️' in s.ev("document.getElementById('dayPill').textContent"))
+    s.pg.wait_for_timeout(1500); s.foto('clima-lluvia')
+    s.ev('CC.setWx(95,20)'); s.pg.wait_for_timeout(7500); s.foto('clima-tormenta')
+    s.ev('CC.setWx(45,20)'); s.pg.wait_for_timeout(800); s.foto('clima-niebla')
+    s.ev('CC.hoy(4,10);CC.setWx(0,20)'); s.pg.wait_for_timeout(1500); s.foto('clima-otono')
+    s.ev('CC.hoy(10,5);CC.setWx(0,36)'); s.pg.wait_for_timeout(800); s.foto('clima-calor-primavera')
+    check('sin errores con todos los climas', not s.errs, str(s.errs))
+    s.ev("document.getElementById('setBtn').click()"); s.pg.wait_for_timeout(200)
+    check('Ajustes cuenta el clima', 'Villarrica' in s.ev("document.getElementById('wxTxt').textContent"))
+    s.ev("document.querySelector('#wxSeg [data-w=off]').click()"); s.pg.wait_for_timeout(300)
+    check('"sin clima" lo apaga', s.ev("CC.S.clima") == 'off' and s.ev('CC.WX.real') is False)
+    s.cerrar()
+
+@prueba
+def fiestas_y_cumpleanos(br):
+    """Cumpleaños de Leandro (25/11), fiestas del año, decoración y regalo una sola vez."""
+    s = Sesion(br).abrir(); cuidar(s)
+    check('Leandro ya viene en la lista de cumpleaños', s.ev("CC.S.cumples.some(q=>q.n==='Leandro'&&q.d===25&&q.m===11)"))
+    f0 = s.ev('CC.S.fru'); s.ev('CC.hoy(11,25)'); s.pg.wait_for_timeout(300)
+    check('el 25/11 hay fiesta', any('Leandro' in x['n'] for x in s.ev('CC.eventosHoy()')))
+    check('regalo de 25 frutillas', s.ev('CC.S.fru') == f0 + 25, s.ev('CC.S.fru'))
+    s.ev('CC.checkEventos();CC.checkEventos()'); check('el regalo es una sola vez', s.ev('CC.S.fru') == f0 + 25)
+    s.pg.wait_for_timeout(2200); s.foto('fiesta-cumple')
+    check('la fiesta saca una foto sola', len(s.ev('CC.fotosLoad()')) >= 1)
+    s.ev('CC.checkLogros()'); check('logro ¡A festejar!', bool(s.ev('CC.S.logros.fiesta')))
+    for m, d, n in [(12, 25, 'arbol'), (10, 31, 'calabaza'), (8, 16, 'globos'), (1, 1, 'globos')]:
+        s.ev(f'CC.hoy({m},{d})'); s.pg.wait_for_timeout(1200); s.foto(f'fiesta-{n}-{m}-{d}')
+        check(f'{d}/{m}: fiesta con decoración', s.ev('CC.eventosHoy()')[0]['deco'] == n, s.ev('CC.eventosHoy()'))
+    s.ev('CC.hoy(0,0)'); check('un día común no hay fiesta', s.ev('CC.eventosHoy().length') == 0)
+    s.ev("document.getElementById('setBtn').click()"); s.ev("document.getElementById('cuBtn').click()"); s.pg.wait_for_timeout(200)
+    s.pg.fill('#cuN', 'Sofi'); s.pg.fill('#cuD', '3'); s.pg.select_option('#cuM', '7'); s.ev("document.getElementById('cuAdd').click()")
+    check('se puede agregar el cumpleaños de Sofi', s.ev("CC.S.cumples.some(q=>q.n==='Sofi'&&q.d===3&&q.m===7)"))
+    s.ev('CC.hoy(7,3)'); check('el 3/7 festeja a Sofi', any('Sofi' in x['n'] for x in s.ev('CC.eventosHoy()')))
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
+def logros_y_album(br):
+    """Logros que se ganan solos y álbum de fotos."""
+    s = Sesion(br).abrir(); cuidar(s)
+    check('hay 20 o más logros', s.ev('CC.LOGROS.length') >= 20)
+    s.ev("CC.S.tot.mimos=1;CC.checkLogros()"); check('primer mimo → logro', bool(s.ev('CC.S.logros.mimo1')))
+    s.ev("CC.S.tot.mimos=60;CC.S.tot.comidas=1;CC.checkLogros();CC.checkLogros();CC.checkLogros()")
+    check('se ganan de a uno por vez, sin perder ninguno', s.ev("!!CC.S.logros.mimo50&&!!CC.S.logros.comida1"))
+    s.ev("document.getElementById('logroBtn').click()"); s.pg.wait_for_timeout(300); s.foto('logros')
+    check('la pantalla muestra el conteo', '/' in s.ev("document.getElementById('lgCount').textContent"))
+    check('los secretos no se muestran', '???' in s.ev("document.getElementById('lgList').textContent"))
+    s.ev("document.querySelector('#lgSeg [data-t=a]').click()"); n0 = len(s.ev('CC.fotosLoad()'))
+    s.ev("document.getElementById('albShot').click()"); s.pg.wait_for_timeout(300)
+    check('sacar una foto la suma al álbum', len(s.ev('CC.fotosLoad()')) == n0 + 1)
+    check('logro Fotógrafo', (s.ev('CC.checkLogros()') or True) and bool(s.ev('CC.S.logros.foto1')))
+    s.pg.wait_for_timeout(200); s.foto('album')
+    s.ev("document.querySelector('#albGrid .ph').click()"); s.pg.wait_for_timeout(200)
+    check('se abre la foto para guardarla', s.ev("document.getElementById('albSave').href").startswith('data:image/jpeg'))
+    s.ev("document.getElementById('albDel').click()"); s.pg.wait_for_timeout(200)
+    check('se puede borrar', len(s.ev('CC.fotosLoad()')) == n0)
+    s.ev("for(let i=0;i<20;i++)CC.foto('manual','x')"); check('el álbum guarda como máximo 16', len(s.ev('CC.fotosLoad()')) == 16)
+    s.ev("CC.S.pet.afinidad=60;CC.S.logros={};CC.S.tot={}"); s.ev("document.getElementById('lgBack').click()")
+    check('las fotos no engordan la partida', 'img' not in s.ev("localStorage.getItem('conCuidado.v1')"))
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
+def avisos(br):
+    """Avisos del navegador: permiso, y notificación solo con el juego en segundo plano."""
+    s = Sesion(br).abrir(); cuidar(s)
+    s.ev("""(()=>{window.__n=[];ServiceWorkerRegistration.prototype.showNotification=function(t,o){window.__n.push([t,o&&o.body]);return Promise.resolve()};
+      Object.defineProperty(Notification,'permission',{get:()=>'granted'});Notification.requestPermission=()=>Promise.resolve('granted')})()""")
+    s.ev("document.getElementById('setBtn').click()"); s.pg.wait_for_timeout(200)
+    s.ev("document.querySelector('#avSeg [data-v=\"1\"]').click()"); s.pg.wait_for_timeout(500)
+    check('se activan los avisos con permiso', s.ev('CC.S.avisos') is True)
+    check('al activarlos manda un aviso de prueba', s.ev('window.__n.length') == 1); s.ev('window.__n.length=0')
+    s.ev("CC.avisar('🍗 prueba','x')"); check('con el juego a la vista no manda aviso', s.ev('window.__n.length') == 0)
+    s.ev("Object.defineProperty(document,'hidden',{get:()=>true,configurable:true})")
+    s.ev("CC.avisar('🍗 Michi tiene hambre','x')"); check('en segundo plano sí manda el aviso', s.ev('window.__n.length') == 1 and 'hambre' in s.ev('window.__n[0][1]'), s.ev('window.__n'))
+    s.ev("CC.S.avisos=false;CC.avisar('otro','y')"); check('apagados no avisa', s.ev('window.__n.length') == 1)
+    s.ev("Object.defineProperty(document,'hidden',{get:()=>false,configurable:true})")
+    check('sin errores', not s.errs, str(s.errs)); s.cerrar()
+
+@prueba
 def muerte_durante_minijuego(br):
     s = Sesion(br).abrir(); s.ev("CC.S.pet.felicidad=40")
     s.pg.click('#aPlay'); s.pg.click('[data-g=lana]'); esperar_juego(s)
@@ -652,7 +745,7 @@ def sin_conexion(br):
     s.pg.click('.ch[data-id=sofi]'); s.pg.click('#introNext'); s.pg.fill('#nameIn', 'Offline'); s.pg.click('#introGo')
     s.ctx.set_offline(True); s.pg.reload(); s.pg.wait_for_function('window.CC', timeout=8000); s.pg.wait_for_timeout(800)
     n = s.ev('CC.S.name'); check('sin internet el juego abre y conserva la partida', n == 'Offline', n)
-    img = s.ev("[...document.images].filter(i=>i.complete&&i.naturalWidth===0).map(i=>i.src)")
+    img = s.ev("[...document.images].filter(i=>i.getAttribute('src')&&i.complete&&i.naturalWidth===0).map(i=>i.src)")
     check('sin internet se ven todos los dibujos', not img, img)
     s.cerrar()
 
